@@ -144,3 +144,134 @@ int main()
 }
 ```
 
+static const成员变量也需要被显式定义，并且必须被初始化赋值。
+``` c++
+// 非法：没有初始化赋值
+class T {
+public:
+    static const int x;
+};
+const int Fred::x;
+
+// 非法：没有显式定义
+class Fred {
+public:
+    static const int x = 3;
+};
+```
+初始化赋值时可以在声明处初始化，也可以在定义处初始化。
+* 声明处初始化时，该成员变量会被优化为编译期常量（不过依然可以对它取地址），所以初始化表达式也必须是编译期可求值的。
+* 定义处初始化时没有任何限制。
+``` c++
+// 合法：声明处初始化
+class T
+{
+public:
+    static const int x=3;
+};
+const int T::x;
+
+// 非法：声明处初始化表达式编译期不可求值
+int y=4;
+class T
+{
+public:
+    static const int x=y;
+};
+const int T::x;
+
+// 合法：定义处初始化
+int y=4;
+class T
+{
+public:
+    static const int x;
+};
+const int T::x=y;
+
+// 非法：重复初始化
+class T
+{
+public:
+    static const int x=3;
+};
+const int T::x=4;
+```
+
+static变量的构造顺序和析构顺序都是不可控的，应尽可能避免在static变量的构造过程、析构过程（包括构造函数和初始化表达式）中依赖其他static变量。
+
+若一个对象的构造函数抛出异常，则为这个对象分配的内存会被自动回收，所以并不会发生内存泄漏。
+
+Named Parameter Idiom：就是让成员函数返回自己的引用，于是就能一直.下去了，一般好像也不叫它Named Parameter Idiom……
+iostream那套就是这么实现的。
+``` c++
+class File;
+class OpenFile {
+public:
+  OpenFile(const std::string& filename);
+    // sets all the default values for each data member
+  OpenFile& readonly();  // changes readonly_ to true
+  OpenFile& readwrite(); // changes readonly_ to false
+  OpenFile& createIfNotExist();
+  OpenFile& blockSize(unsigned nbytes);
+  // ...
+private:
+  friend class File;
+  std::string filename_;
+  bool readonly_;          // defaults to false [for example]
+  bool createIfNotExist_;  // defaults to false [for example]
+  // ...
+  unsigned blockSize_;     // defaults to 4096 [for example]
+  // ...
+};
+
+File f = OpenFile("foo.txt")
+           .readonly()
+           .createIfNotExist()
+           .appendWhenWriting()
+           .blockSize(1024)
+           .unbuffered()
+           .exclusiveAccess();
+
+// File.cpp
+File::File(const OpenFile& params)
+{
+  // ...
+}
+```
+
+```c++
+class B {
+public:
+    B() {}
+};
+class A {
+public:
+    A(B) {
+        //...
+    }
+};
+
+A a(B());
+a.func(); // Failed
+```
+上文中`A a(B())`会报错，这是因为编译器先读到`A a(...)`，它会以为这是一句函数声明，以为这是一个叫`a`的函数：
+这个函数返回一个`A`对象，其参数也是一个函数。
+`B()`被认为是一个函数类型，它描述的是返回一个`B`对象的、参数列表为空的函数（用`B(*)()`的写法或许会更熟悉）。
+也就是说上文中`a`的类型被编译期认定为`A(*)(B(*)())`，而不是我们以为的`A`。
+为了解决这一问题，最好的方法是使用uniform initialization：
+``` c++
+A a{B()};
+a.func(); // Work
+```
+
+`explicit`关键字可以用来避免构造函数被用来进行隐式类型转换。
+
+
+
+
+
+
+
+
+

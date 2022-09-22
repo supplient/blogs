@@ -27,15 +27,12 @@
 <header id="title-block-header">
 <h1 class="title">测试用博客</h1>
 </header>
-<p><a
-href="2022-9-13-ClassesAndObjects.html">2022-9-13-ClassesAndObjects.html</a></p>
-<p><a
-href="2022-9-15-Constructors.html">2022-9-15-Constructors.html</a></p>
-<p><a href="2022-9-21-Assign.html">2022-9-21-Assign.html</a></p>
-<p><a
-href="2022-9-21-Destructors.html">2022-9-21-Destructors.html</a></p>
-<p><a
-href="2022-9-21-OperatorOverloading.html">2022-9-21-OperatorOverloading.html</a></p>
-<p><a href="2022-9-22-Friends.html">2022-9-22-Friends.html</a></p>
+<p>https://isocpp.org/wiki/faq/friends</p>
+<p>友元函数的设计目的是为了让接口设计有更多可能。
+如果没有友元函数的话，那所有接口都是<code>obj.f()</code>的形式，而使用友元函数的话就有了<code>f(obj1, obj2, arg, obj3)</code>等等多种多样的接口形式。</p>
+<ul>
+<li>友元不可继承：若T声明<code>Base</code>类为友元类，则<code>Base</code>的继承类<code>Derived</code>并不是T的友元。</li>
+<li>友元不可传递：友元的友元不是我的友元。</li>
+</ul>
 </body>
 </html>

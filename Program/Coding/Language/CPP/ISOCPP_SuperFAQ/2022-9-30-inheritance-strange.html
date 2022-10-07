@@ -137,6 +137,9 @@ class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb2-1"><a href="#c
 不过private virtual的话范围更小，是只对“基类”的接口。
 通常来说我们更倾向于protected
 virtual，因为设计基类的时候很难确定继承类是否会调用这些接口。</p>
-<p>构造函数内不可调用virtual methods.</p>
+<p>基类构造函数内调用virtual
+methods的话，并不会调用继承类override的方法，而只会调用基类方法。
+这是因为执行基类构造函数时，只有基类对象被构建了，而继承类对象还没有被构建，如果此时调用继承类方法，而该方法里使用了继承类对象的成员对象的话，那这就是个未定义行为。
+因此在基类构造函数里调用继承类方法是非常危险的，故而直接从实现上禁止了这一行为。</p>
 </body>
 </html>

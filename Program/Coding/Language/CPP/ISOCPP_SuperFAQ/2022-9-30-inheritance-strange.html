@@ -141,5 +141,50 @@ virtual，因为设计基类的时候很难确定继承类是否会调用这些�
 methods的话，并不会调用继承类override的方法，而只会调用基类方法。
 这是因为执行基类构造函数时，只有基类对象被构建了，而继承类对象还没有被构建，如果此时调用继承类方法，而该方法里使用了继承类对象的成员对象的话，那这就是个未定义行为。
 因此在基类构造函数里调用继承类方法是非常危险的，故而直接从实现上禁止了这一行为。</p>
+<p>在基类析构函数里调用virtual
+methods时也一样，此时继承类的析构函数已经被执行过了，所以在基类析构函数里this指针指向的对象仅仅只是基类对象，而不可能是继承类对象，因此只会调用基类方法。</p>
+<p>重载(overload)仅发生在同一个scope中，哪怕是继承也不可以跨scope重载：</p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="pp">#include</span><span class="im">&lt;iostream&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">using</span> <span class="kw">namespace</span> std<span class="op">;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> B <span class="op">{</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">int</span> f<span class="op">(</span><span class="dt">int</span> i<span class="op">)</span> <span class="op">{</span> cout <span class="op">&lt;&lt;</span> <span class="st">&quot;f(int): &quot;</span><span class="op">;</span> <span class="cf">return</span> i<span class="op">+</span><span class="dv">1</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> D <span class="op">:</span> <span class="kw">public</span> B <span class="op">{</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> f<span class="op">(</span><span class="dt">double</span> d<span class="op">)</span> <span class="op">{</span> cout <span class="op">&lt;&lt;</span> <span class="st">&quot;f(double): &quot;</span><span class="op">;</span> <span class="cf">return</span> d<span class="op">+</span><span class="fl">1.3</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="dt">int</span> main<span class="op">()</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="op">{</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  D<span class="op">*</span> pd <span class="op">=</span> <span class="kw">new</span> D<span class="op">;</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>  cout <span class="op">&lt;&lt;</span> pd<span class="op">-&gt;</span>f<span class="op">(</span><span class="dv">2</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>  cout <span class="op">&lt;&lt;</span> pd<span class="op">-&gt;</span>f<span class="op">(</span><span class="fl">2.3</span><span class="op">)</span> <span class="op">&lt;&lt;</span> <span class="ch">&#39;</span><span class="sc">\n</span><span class="ch">&#39;</span><span class="op">;</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">delete</span> pd<span class="op">;</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="op">}</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co">/* Output</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co">f(double): 3.3</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">f(double): 3.6</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co">*/</span></span></code></pre></div>
+<p>上面代码中f没有被重载，而是被隐藏了。编译器看到<code>f(2)</code>的时候，只检查了class
+D的scope，然后在里面只找到了<code>double f(double)</code>，因此把<code>2</code>隐式转换成了<code>2.0</code>。
+解决方案是使用<code>using</code>把<code>B::f</code>引入class
+D的scope中：</p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode cpp"><code class="sourceCode cpp"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> D <span class="op">:</span> <span class="kw">public</span> B <span class="op">{</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">public</span><span class="op">:</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">using</span> B<span class="op">::</span>f<span class="op">;</span> <span class="co">// Matter</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">double</span> f<span class="op">(</span><span class="dt">double</span> d<span class="op">)</span> <span class="op">{</span> cout <span class="op">&lt;&lt;</span> <span class="st">&quot;f(double): &quot;</span><span class="op">;</span> <span class="cf">return</span> d<span class="op">+</span><span class="fl">1.3</span><span class="op">;</span> <span class="op">}</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="op">};</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">/* Output</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">f(int): 3</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">f(double): 3.6</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">*/</span></span></code></pre></div>
+<p>许多编译器会把虚表和第一个非内联的虚函数放在同一个编译单元里，所以如果<em>第一个非内联的虚函数</em>未定义的话，那虚表也会变得未定义。
+然后因为虚表是先于虚函数被查找的，所以报的错会是<code>virtual table is undefined</code>，而不是<code>method is undefined</code>。</p>
 </body>
 </html>

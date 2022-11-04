@@ -1,0 +1,1 @@
+**Composition is for code reuse, inheritance is for flexibility.**

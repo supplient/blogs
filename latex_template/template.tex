@@ -1,0 +1,38 @@
+\documentclass[lang=cn, a4paper,chinesefont=founder,bibend=bibtex]{elegantpaper}
+\title{ElegantPaper: 一个优美的 \LaTeX{} 工作论文模板}
+\author{Supplient}
+\institute{\href{https://supplient.github.io/blogs/}{My Blog}}
+
+% 填日期
+\date{2022/11/4}
+
+\usepackage{array}
+\newcommand{\ccr}[1]{\makecell{{\color{#1}\rule{1cm}{1cm}}}}
+\usepackage{bm}
+
+% 参考文献
+\addbibresource[location=local]{refs.bib} 
+
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+	摘要
+\keywords{Navier-Stokes Equations, Continuum Mechanics}
+\end{abstract}
+
+
+内容
+
+
+
+\nocite{*}
+\printbibliography[heading=bibintoc, title=\ebibname]
+
+\appendix
+%\appendixpage
+\addappheadtotoc
+
+\end{document}

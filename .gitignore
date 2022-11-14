@@ -1,3 +1,4 @@
+# tex
 *.aux
 *.bbl
 *.bcf
@@ -7,3 +8,7 @@
 *.run.xml
 *.synctex.gz
 *-blx.bib
+
+# drawio
+*.bkp
+*.dtmp

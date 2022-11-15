@@ -12,3 +12,6 @@
 # drawio
 *.bkp
 *.dtmp
+
+# python
+*.pyc

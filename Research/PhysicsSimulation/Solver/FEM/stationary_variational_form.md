@@ -208,65 +208,201 @@ $$
 * 诺依曼边值条件在推导弱形式时被自然地联立进弱形式中，因此通常被称为*natural boundary condition* 。
 
 
-# 有限元试空间
+### 1.6. 例子
+这节给出伽辽金法求解边值问题的例子。
 
-我们希望trial space $V$ 能让弱形式
-$a(u,v) = L(v) \quad \forall v \in V$ 的计算方便又轻松。
-其中一个选项就是将分段多项式函数作为trial function $u$ 。
+【TODO】加个例子
 
-将定义域$\Omega$剖分，得到剖分$\mathcal{T}$。
-设剖分中每个单元(element)$K_i$内的插值函数为$\mathcal{I}_{K_i}f$，
-则trial function为全局的插值函数$\mathcal{I}f|_{K_i} = \mathcal{I}_{K_i}f$，
-trial space $V = \{\mathcal{I}f: f \in \mathcal{F}\}$。
 
-为单元$K$内的局部插值函数$\mathcal{I}_{K}f$做定义。
-设每个单元中都有三元组$(K, \mathcal{P}, \mathcal{N})$：
+# 2. 使用有限元构造试空间
 
-* $K$为该单元的定义域，称为单元域element domain。
-* $\mathcal{P}$为$K$上的一个有限维函数空间，称为shape function的所在空间。
-* $\mathcal{N}=\{N_1, N_2, \dots, N_k\}$为$P$的对偶空间$P'$中的一组基，称为nodal variables。
-	* $\mathcal{N}$的一个例子是$N_i(v)=v(x_i)$，也就是说$N_i$接收$\mathcal{P}$中的一个函数，然后返回该函数在$x_i$上的取值。
-	* 另一个例子是$N_i(v)=v'(x_i)$，此时$N_i$接收$\mathcal{P}$中的一个函数，然后返回该函数在$x_i$上的一阶导数。
+## 2.1. 动机
+使用伽辽金法求解边值问题的步骤可以概述如下：
 
-若$\mathcal{P}$中的一组基$\{\phi_1, \phi_2, \dots, \phi_k\}$满足$N_i(\phi_j)=\delta_{ij}$（$i=j \Rightarrow \delta_{ij}=1 ; i\neq j \Rightarrow \delta_{ij}=0$），则称这组基$\{\phi_i\}$为nodal basis。
+1. 构造合适的试空间$V$，使$v\in V$都满足狄利克雷边界条件
+2. 写出变分形式$(R,v)=0, \forall v \in V$（与其等效的弱形式$a(u,v)=L(v)$）
+3. 联立变分形式与诺依曼边界条件，得到一个方程组
+4. 求解该方程组得到试函数$u$中的待定系数，得到近似解$u$
 
-* 例如当$N_i(v)=v(x_i)$时，$N_i(\phi_j)=\phi_j(x_i)$，若$\{\phi_j\}$为nodal basis的话，则$\phi_j(x_i)=\delta_{ij}$意味着$\phi_j$是一个仅在$x_j$处取值为1而在其他所有$x_i$处都取值为0的函数（例子就是克罗内克函数$\delta_{ij}$）。
+可以看出问题的关键是构造合适的$V$，它能:
 
-则局部插值函数$\mathcal{I}_{K}f$定义为：
+* 满足狄利克雷边界条件
+* 让第4步的方程组容易求解
+
+使用有限元构造的试空间$V$就满足这两个需求。
+
+
+## 2.2. 试函数：分段多项式
+
+我们选择使用 **分段多项式(Piecewise Polynomial)** 来构造试函数（也就是每段都是多项式函数的分段函数），例如：
+
+![](2023-01-20-07-53-10.png)
+
+这是因为：
+
+* 狄利克雷边界条件只会影响到靠近边界的那一段函数
+* 通过选取合适的系数，多项式函数很容易满足狄利克雷边界条件（例如对于多项式$x+b$，只要使$b=-x_i$就能在$x=x_i$时归0）
+* 分段多项式函数构成的试空间为线性空间，因此第4步得到的变分形式方程组为线性方程组，很容易求解
+
+
+## 2.3. 剖分与单元
+
+首先将定义域$\Omega$剖分，得到 **剖分(subdivision)** $\mathcal{T}$（剖分的定义见[2]的3.3.8，简单来说就是不相交的子集集合，其并集为整个$\Omega$）。
+将剖分中的一个子集称为一个 **单元(element)** 。
+
+设在任意单元$K \in \mathcal{T}$内试函数都是一个多项式函数$P_K$，称其为 **形函数(shape function)** ，整个定义域上的分段多项式$P$为：
 
 $$
-\mathcal{I}_{K}f = \sum_{i=1}^k N_i(f)\phi_i
+P|_K = P_K
 $$
 
-
-不同的$(K, \mathcal{P}, \mathcal{N})$就构成了不同类型的有限元:
-
-* $K$为三角形时为Triangular Element
-	* $N_i(v)=v(z_i)$时，该有限元为Lagrange Element
-		* 可以选取不同的$\mathcal{P}$和$\mathcal{N}$，只要满足$\mathcal{N}$为$\mathcal{P}$的一组基即可。
-		* 例如$\mathcal{P}=\mathcal{P}_1$，$\mathcal{N}=\{N_1, N_2, N_3\}$，$z_i$为$K$的三个顶点。
-			* $\mathcal{P}_k$为由次数小于等于$k$的多项式构成的函数空间。
-	* Hermite Element会要求有$N_i(v)=v'(z_i)$，Argyris Element会要求有$N_i(v)=v''(z_i)$，这两类在此略过。
-* $K$为四边形时为Rectangular Element，其他形状时也都类似，例如Tetrahedron Element，Cuboid Element。
-
-而不同类型的有限元就定义了不同的局部插值函数$\mathcal{I}_Kf$，从而也就定义了不同的全局插值函数$\mathcal{I}f$，产生了不同的trial space $V=\{\mathcal{I}f: f\in \mathcal{F}\}$。
-
-用有限元定义的全局插值函数具有下面两个在Garlekin Method里特别实用的性质：
-
-* 3.3.17连续性：Lagrange Element和Hermite Element定义的$\mathcal{I}f \in C^0$，Angyris Element定义的$\mathcal{I}f \in C^1$。
-	* 这确保了一阶导数的存在。
-* 误差估计
-	* 4.4.28导数误差估计：用Lagrange, Hermite, Angyris Element定义的$\mathcal{I}f$在使用Garlekin Method求解$u$时都满足误差估计$||u-\mathcal{I}u||_{H^1(\Omega)} \leq C h^m||u||_{H^{m+1}(\Omega)}$
-		* 其中$C$为一个与有限元单元形状有关的常数，$h\in (0,1]$为有限元单元相对于定义域全局的大小比例（也就是$h$越小，剖分得就越细、单元就越小），$m$为有限元定义中的$\mathcal{P}$对应的阶次（即$P=P^m$），$H^m=W^m_2$为索博列夫空间
-		* 可以大致理解为：导数误差$||u'-\mathcal{I}u'||$总是关于$h^m$成线性关系
-	* 5.4.8解误差估计：$||u-\mathcal{I}u||_{L^2(\Omega)} \leq C h^{m+1} ||u||_{H^{m+1}(\Omega)}$
-		* 可以大致理解为：误差$||u-\mathcal{I}u||$总是关于$h^{m+1}$成线性关系
-	* 总的来说就是当有限元定义中使用$m$阶多项式时，误差$||u-\mathcal{I}u||=O(h^{m+1})$，$O(\cdot)$为渐进大$O$记号。
+即$P$在$K$中等于$P_K$。
 
 
+## 2.4. 多项式空间$\mathcal{P}_m$与基函数
+
+接下来我们定义单元内的多项式函数$P_K$。
+
+为了方便，记$\mathcal{P}_m$为由最高次数小于等于$m$的多项式构成的函数空间。
+
+我们的目标是在多项式函数空间$\mathcal{P}_m$里找到一组合适的基$\{\phi_i\}$：即存在常系数$\{c_i\}$使得$P_K=\sum c_i \phi_i$。
+
+任何基都是合法的，例如当$x\in R^1$，对于函数空间$\mathcal{P}_1$，基$\{\phi_1=x, \phi_2=1\}$是合法的，我们可以设$P_K = c_1x + c_2$，然后用$P_K$构造$\Omega$上的分段多项式函数$P$，再把$P$作为试函数代入变分形式$(R,v)=0, \forall v \in V$中进行求解，最终得到$c_1, c_2$。
+
+我们选取的基函数为有限元基函数。
+
+
+## 2.5. 有限元基函数：拉格朗日线性三角元
+
+**有限元基函数** 的形式化定义方法和其他常见的构造方法(e.g. Hermite Element, Argyris Element)参见[2]的第3章和[3]的第9章，本文将只介绍 **拉格朗日线性三角元(Lagrange Linear Triangular Element)** 。
+
+首先先解释一下“拉格朗日线性三角元”的含义：
+
+* 三角元：意味着单元空间$K$是一个二维平面上的三角形。
+* 线性：意味着构造的多项式函数$P_K$为一次函数，即$P_K \in \mathcal{P}_1$。
+* 拉格朗日：意味着我们只使用顶点值来构造基函数，而不使用顶点上的导数值。与之相对的是Hermite使用顶点的一阶导数，Argyris使用顶点的二阶导数。（名字来源是拉格朗日插值多项式）
+
+![](2023-01-20-09-15-28.png)
+
+设$K$的三个顶点分别为$A, B, C$，其空间坐标为$\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3$，有$\mathbf{x}_i \in R^2$。
+
+有限元基函数$\phi_i$应当满足：
+
+$$
+\phi_i(\mathbf{x}_j) = 
+\left\{
+\begin{aligned}
+	&1 \quad \text{if } i=j \\
+	&0 \quad \text{if } i\neq j
+\end{aligned}
+\right.
+$$
+
+即有限元基函数$\phi_i$仅在$\mathbf{x}_i$上取值为1，而在其他顶点上都取值为0。
+该式也被记为$\phi_i(\mathbf{x}_j)=\delta_{ij}$，其中$\delta_{ij}$为 **克罗内克函数(Kronecker delta)** 。
+
+利用有限元基函数的这一要求和$\phi_i \in \mathcal{P}_1$的条件，我们可以求出$\phi_i$——
+
+以$\phi_1$为例。
+由$\phi_1 \in \mathcal{P}_1$可设$\phi_1(\mathbf{x}) = (k_1, k_2) \cdot \mathbf{x} + k_3$，
+而因为$\phi_1$仅在$\mathbf{x}_1$上取值为1，而在$\phi_2, \phi_3$上都取值为0，所以可得方程组：
+
+$$
+\left\{
+\begin{aligned}
+	(k_1, k_2) \cdot \mathbf{x}_1 + k_3 = 1 \\
+	(k_1, k_2) \cdot \mathbf{x}_2 + k_3 = 0 \\
+	(k_1, k_2) \cdot \mathbf{x}_3 + k_3 = 0 \\
+\end{aligned}
+\right.
+$$
+
+它是一个关于$k_1, k_2, k_3$的线性方程组，只要$\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3$不共线就一定有唯一解或无解。解得：
+
+$$
+M := x_1y_2-x_3y_2-x_1y_3-x_2y_1+x_3y_1+x_2y_3
+$$
+
+$$
+\left\{
+\begin{aligned}
+	k_1 &= \frac{y_2-y_3}{M} \\
+	k_2 &= \frac{x_1-x_2}{M} \\
+	k_3 &= \frac{x_3y_3-x_3y_2+x_2y_3-x_1y_3}{M} \\
+\end{aligned}
+\right.
+$$
+
+其中$x_i, y_i$为$\mathbf{x}_i$的分量，即$\mathbf{x}_i=(x_i, y_i)$。
+
+同理可求得$\phi_2, \phi_3$。
+
+此处略去证明$\{\phi_1, \phi_2, \phi_3\}$为$\mathcal{P}_1$的一组基的过程。
+（提示：因为二维情况下$dim\mathcal{P}_1=3$，所以只要证明$\phi_1, \phi_2, \phi_3$线性无关即可。）
+
+
+## 2.6. 狄利克雷边界条件
+
+下面讨论在使用有限元基函数时该怎么让试函数满足狄利克雷边界条件。
+
+首先要假设所有狄利克雷边界点都在三角元的顶点上。
+尽管落在其他位置的情况也可以处理，但那就超出拉格朗日线性元可以方便处理的范畴了，因此此处为了简化讨论还是假设边界点都在顶点上。
+
+设在单元$K$中三个顶点的空间坐标分别为$\mathbf{x}_1, \mathbf{x}_2, \mathbf{x}_3$，有(齐次)狄利克雷边界条件为$u(\mathbf{x}_1)=0$。
+
+设该单元内的基函数为$\{\phi_i\}$，且该单元内的多项式函数$P_K=\sum c_i \phi_i$，则有：
+
+$$
+\begin{aligned}
+	u(\mathbf{x}_1) 
+	= P|_K(\mathbf{x}_1) 
+	= P_K(\mathbf{x}_1)
+	= \sum c_i \phi_i(\mathbf{x}_1)
+	= c_1
+\end{aligned}
+$$
+
+其中最后一步是因为$\phi_i(\mathbf{x}_j)=\delta_{ij}$。
+
+由$u(\mathbf{x}_1)=c_1$可知，
+要让$v\in V$满足$u(\mathbf{x}_1)=0$的边界条件，
+就是要让$c_1=0$。
+而$c_1$是我们想要求解的一个未知系数。
+
+所以可以不用显式地对试空间$V$做任何处理，只要在最后把狄利克雷边界条件$\mathcal{B}_i=u(\mathbf{x}_i)=c_i=0$也联立进变分形式的方程组中即可：
+
+$$
+\left\{
+\begin{aligned}
+& a(u,v) = L(v) \quad \forall v \in V \\
+& c_i=0
+\end{aligned}
+\right.
+$$
+
+实际计算时就是用$c_i=0$消去线性方程组中的若干行，非常容易。
+
+【TODO：在使用有限元基函数时，非齐次狄利克雷边界条件会不会也变得容易处理了？】
+
+
+## 2.7. 连续性与误差估计
+
+使用拉格朗日元构造的试空间在连续性和与精确解之间的误差上有以下性质：
+
+1. 连续性（见[2]的3.3.17）：试函数$P$至少一阶可导，但导函数不一定连续，即$P \in C^0$。
+	* 连续性确保了试函数$u$总是一阶可导，所以在求解二阶微分方程时能代入弱形式$a(u,v)=L(v), \forall v \in V$进行计算。 
+2. 误差估计（见[2]的4.4.28和5.4.8）：求解变分形式$(R,v)=0, \forall v \in V$后得到的近似解$u$与边值问题的精确解$u_e$之间的差值满足：
+	* $||u_e-u||_{L^2(\Omega)} \leq C h^{m+1} ||u_e||_{H^{m+1}(\Omega)}$
+	* 其中$C$为与剖分形状相关的常系数，$h\in (0,1]$为单元直径关于定义域直径的比例，$m$为基函数的最高次数（即$\mathcal{P}_m$的$m$），$\Omega$为定义域，$H^{m+1}=W^{m+1}_2$为索博列夫空间（不知道索博列夫空间是什么也没影响）。
+	* 可以理解为近似解$u$的误差关于$h^{m+1}$呈线性关系：
+		* 剖分得越细，$h$就越小，误差也就越小
+		* 使用越高次的多项式作基函数，$h^{m+1}$就越小，误差也就越小
 
 
 
+## 2.8. 例子
+本节给出使用有限元基函数构造试函数，然后使用伽辽金法计算边值问题近似解的例子。
 
-# 参考文献
-【TODO】
+【TODO】加个例子
+
+

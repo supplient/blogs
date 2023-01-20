@@ -406,3 +406,9 @@ $$
 【TODO】加个例子
 
 
+
+# 参考文献
+1. Stationary variational forms. http://hplgit.github.io/num-methods-for-PDEs/doc/pub/index.html.
+2. Brenner, S. C. & Scott, L. R. The mathematical theory of finite element methods. (Springer, 2008).
+3. Approximation of functions. http://hplgit.github.io/num-methods-for-PDEs/doc/pub/index.html.
+

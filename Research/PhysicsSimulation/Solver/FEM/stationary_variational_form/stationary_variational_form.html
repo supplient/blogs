@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>测试用博客</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://gist.githubusercontent.com/supplient/1726b3acbfed278f54b66cf11129a43b/raw/62b874d98f72005d18b9b2a05d3be6815959b51b/gh-pandoc.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">测试用博客</h1>
+</header>
+<p>本文为[1]的阅读笔记，将重点介绍 <strong>伽辽金法</strong> 和
+<strong>有限元基函数</strong>
+，并会给出两个使用三角函数和有限元基函数构造试空间，进而使用伽辽金法求解边值问题的例子（使用sympy编写，可以直接在colab上执行）。</p>
+<p>本文的目标受众为 <strong>初学有限元的计算机从业人员</strong>
+，并不适合力学专业的相关人士阅读。</p>
+<p>注意尽管边界条件的讨论占据了本文很大的篇幅，但其实笔者也尚未完全搞懂边界条件的处理方法，因此读者应当<strong>避免</strong>花太多精力阅读边界条件的部分。</p>
+<h1 id="伽辽金法">1. 伽辽金法</h1>
+<h2 id="边值问题">1.1 边值问题</h2>
+<p>欲求解<strong>边值问题</strong>(<a
+href="https://en.wikipedia.org/wiki/Boundary_value_problem">Boundary
+value problem</a>)：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    \mathcal{L}(u) &amp;= 0, \quad x \in \Omega \\
+    \mathcal{B_i}(u) &amp;= 0, \quad i=1,2,\dots, n_B
+\end{aligned}
+\right.
+\]</span></p>
+<p>其中<span
+class="math inline">\(\mathcal{L}(u)=0\)</span>为微分方程，例如<span
+class="math inline">\(\mathcal{L}(u)=f+u&#39;&#39;\)</span>；<span
+class="math inline">\(\mathcal{B}_i(u)=0\)</span>为边界条件，例如<span
+class="math inline">\(\mathcal{B}_i(u)=u(x_i)-g(x_i)\)</span>；<span
+class="math inline">\(\Omega\)</span>为定义域；<span
+class="math inline">\(u\)</span>为关于<span
+class="math inline">\(x\)</span>的未知函数。</p>
+<p>理想目标是找到满足边值问题的<span
+class="math inline">\(u\)</span>。</p>
+<h2 id="求解策略试函数法">1.2. 求解策略：试函数法</h2>
+<p>我们采取的求解策略是在<strong>试空间(trial space)</strong><span
+class="math inline">\(V\)</span>中找一个完全满足边界条件<span
+class="math inline">\(\mathcal{B}_i(u)=0\)</span>、并尽可能满足微分方程<span
+class="math inline">\(\mathcal{L}(u)=0\)</span>的近似解<span
+class="math inline">\(u\in V\)</span>（被称为<strong>试函数trial
+function</strong>）。</p>
+<p>例如试空间可能是<span class="math inline">\(V=\{kx+b: k,b \in
+R\}\)</span>， 显然，能被该空间完全满足的微分方程并不多，
+例如微分方程<span
+class="math inline">\(u&#39;&#39;=2\)</span>就永远不可能在<span
+class="math inline">\(V=\{kx+b: k,b \in R\}\)</span>中找到解，因为<span
+class="math inline">\((kx+b)&#39;&#39;\equiv 0\)</span>。</p>
+<p>设边值问题的精确解为<span class="math inline">\(u_e\)</span>，
+我们的期望是近似解能尽可能地接近精确解，即它俩的差在某种模下尽可能小：<span
+class="math inline">\(\min_{u\in V}||u_e-u||\)</span>。</p>
+<p>但我们不知道精确解<span
+class="math inline">\(u_e\)</span>的解析式，所以没法直接求<span
+class="math inline">\(\argmin_{u\in V}||u_e-u||\)</span>。</p>
+<h2 id="céa引理变分形式与伽辽金法">1.3 Céa引理、变分形式与伽辽金法</h2>
+<p><a
+href="https://en.wikipedia.org/wiki/C%C3%A9a%27s_lemma"><strong>Céa引理</strong></a>（见[2]的2.8.1）指出当一些有关<span
+class="math inline">\(u\)</span>和边值问题的条件被满足时，有：</p>
+<p><span class="math display">\[
+||u_e-u|| \leq C\min_{v\in V} ||u_e-v|| , \quad C \text{ is constant}
+\]</span></p>
+<p>即近似解<span class="math inline">\(u\)</span>关于<span
+class="math inline">\(V\)</span>中的最优解呈线性关系。
+因此我们的目标可以转为找到满足Céa引理条件的<span
+class="math inline">\(u\)</span>。</p>
+<p>Céa引理的条件比较复杂，我们一般也不会去验证，所以这里我们只挑选其中最重要的一条，它对我们计算近似解<span
+class="math inline">\(u\)</span>有用：</p>
+<p><span class="math display">\[
+\begin{aligned}
+R := &amp;\mathcal{L}(u) \\
+(R,v) &amp;= 0 \quad \forall v \in V \\
+\end{aligned}
+\]</span></p>
+<p>其中<span class="math inline">\((R,v) = \int_\Omega Rv
+dx\)</span>为函数内积（或称为<span
+class="math inline">\(L^2\)</span>内积）。</p>
+<p>也就是将近似解<span class="math inline">\(u\)</span>代入微分方程<span
+class="math inline">\(\mathcal{L}\)</span>后得到的
+<strong>残值(Residual)</strong> <span
+class="math inline">\(R\)</span>要与<span
+class="math inline">\(V\)</span>中的任意函数<span
+class="math inline">\(v\)</span>都内积为0（即<span
+class="math inline">\(R\)</span>与<span
+class="math inline">\(V\)</span>正交）。</p>
+<p>通常称<span class="math inline">\((R,v)=0, \forall v \in
+V\)</span>为原边值问题的 <strong>变分形式(variational
+formulation)</strong> ，
+并称通过求解该变分形式来获取原边值问题的近似解的方法为<strong>伽辽金法(Garlekin
+Method)</strong> 。</p>
+<blockquote>
+<p>伽辽金法是一种<strong>加权残值法(Weighted Residual Method)</strong>
+。 加权残值法也是求解变分形式来获取近似解，不过它的变分形式为： <span
+class="math display">\[
+(R,v) = 0 \quad \forall v \in W
+\]</span> 其中<span class="math inline">\(W\)</span>为有别于试空间<span
+class="math inline">\(V\)</span>的另一个空间，它被称为<em>test
+space</em>，而<span class="math inline">\(v\in W\)</span>被称为<em>test
+function</em>。 伽辽金法就是当<span
+class="math inline">\(W=V\)</span>时的加权残值法。</p>
+</blockquote>
+<h2 id="强形式与弱形式">1.4. 强形式与弱形式</h2>
+<p>通过对<span
+class="math inline">\((R,v)\)</span>应用分部积分，有时可以降低对试函数<span
+class="math inline">\(u\)</span>的可导性要求。 例如当<span
+class="math inline">\(\mathcal{L}(u)=u&#39;&#39;,
+\Omega=[0,1]\)</span>时：</p>
+<p><span class="math display">\[
+\begin{aligned}
+(R, v) &amp;= \int_\Omega u&#39;&#39;vdx \\
+&amp;= \int_\Omega vdu&#39; \\
+&amp;= \int_\Omega u&#39;v&#39;dx + u&#39;v|^1_0 \\
+\end{aligned}
+\]</span></p>
+<p>可以看到，原本<span
+class="math inline">\((R,v)\)</span>的计算要求<span
+class="math inline">\(u\)</span>有二阶导数<span
+class="math inline">\(u&#39;&#39;\)</span>，但在经过一步分部积分后就只要一阶导数<span
+class="math inline">\(u&#39;\)</span>了。</p>
+<p>一般地，我们将<span
+class="math inline">\((R,v)=0\)</span>经过分部积分后得到的形式称为<strong>弱形式(weak
+formulation)</strong> ，记为：</p>
+<p><span class="math display">\[
+F(u;v)=0 \quad \forall v \in V
+\]</span></p>
+<p>而原本那个有更高可导性要求的形式则称为 <strong>强形式(strong
+formulation)</strong> 。 强形式和弱形式都是变分形式，只是对试函数<span
+class="math inline">\(u\)</span>的可导性要求不同而已。</p>
+<p>特别地，实际问题中经常碰到满足双线性性质的<span
+class="math inline">\(F(u;v)\)</span>，即满足如下性质的<span
+class="math inline">\(F(u;v)\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+F(u+w;v) &amp;= F(u;v) + F(w;v) \\
+F(u;v+w) &amp;= F(u;v) + F(u;w) \\
+\end{aligned}
+\]</span></p>
+<p>称满足该性质的<span
+class="math inline">\(F(u;v)\)</span>为双线性形式(bilinear
+form)，此时弱形式更常见的记法为（后文中我们将称其为<em>线性弱形式</em>，这是一个非标准术语）：</p>
+<p><span class="math display">\[
+a(u,v) = L(v) \quad \forall v \in V
+\]</span></p>
+<p>其中<span class="math inline">\(a(u,v)\)</span>为双线性形式，<span
+class="math inline">\(L(v)\)</span>为线性形式，即满足<span
+class="math inline">\(L(v+w)=L(v)+L(w)\)</span>。</p>
+<h3 id="有限维试空间与线性弱形式">1.4.1. 有限维试空间与线性弱形式</h3>
+<p>通常，为了提升计算效率，我们会选择有限维的试空间，
+即试空间为一个线性空间，且该线性空间中的基为一组有限个数的函数。
+设试空间为<span class="math inline">\(V\)</span>，基函数为<span
+class="math inline">\(\{\phi_i\}\)</span>，则有<span
+class="math inline">\(\forall v \in V\)</span>：</p>
+<p><span class="math display">\[
+v = \sum c_i \phi_i
+\]</span></p>
+<p>在实际问题中我们还经常会碰到线性弱形式：</p>
+<p><span class="math display">\[
+a(u,v) = L(v) \quad \forall v \in V
+\]</span></p>
+<p>设<span class="math inline">\(u = \sum c_i \phi_i\)</span>。
+为了能求解弱形式，我们需要将它转化为一个以<span
+class="math inline">\(\{c_i\}\)</span>为未知数的有限的方程组。
+为此需要证明下列等价关系：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; a(u,v) = L(v) \quad \forall v \in V \\
+\Leftrightarrow
+&amp; \sum c_i a(\phi_i, \phi_j) = L(\phi_j) \quad \forall j \\
+\end{aligned}
+\]</span></p>
+<p>先对<span class="math inline">\(a(u, v)\)</span>做一个变换（由<span
+class="math inline">\(a(\cdot, \cdot)\)</span>的双线性性质得到）：</p>
+<p><span class="math display">\[
+a(u,v)
+= a(\sum c_i \phi_i, v)
+= \sum c_i a(\phi_i, v)
+\]</span></p>
+<p>因此：</p>
+<p><span class="math display">\[
+\begin{aligned}
+\sum c_i a(\phi_i, \phi_j) = L(\phi_j) \\
+\Leftrightarrow a(u,\phi_j) = L(\phi_j) \\
+\end{aligned}
+\]</span></p>
+<p>目标也就变为证明:</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; a(u,v) = L(v) \quad \forall v \in V \\
+\Leftrightarrow &amp; a(u,\phi_j) = L(\phi_j) \quad \forall j \\
+\end{aligned}
+\]</span></p>
+<p>先证明充分性<span class="math inline">\(\Rightarrow\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    &amp; \because \phi_j \in V \\
+    &amp; \therefore a(u, \phi_j) = L(\phi_j), \forall j \\
+\end{aligned}
+\]</span></p>
+<p>再证明必要性<span class="math inline">\(\Leftarrow\)</span>，设<span
+class="math inline">\(v=\sum k_j \phi_j\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    &amp; a(u,v) = L(v) \\
+\Leftrightarrow &amp; a(u, \sum k_j \phi_j) = L(\sum k_j \phi_j) \\
+\Leftrightarrow &amp; \sum k_j a(u, \phi_j) = \sum k_j L(\phi_j) \\
+\Leftrightarrow &amp; \sum k_j (a(u, \phi_j) - L(\phi_j)) = 0 \\
+\Leftrightarrow &amp; \sum k_j (a(u, \phi_j) - L(\phi_j)) = 0 \\
+\end{aligned}
+\]</span></p>
+<p><span class="math display">\[
+\begin{aligned}
+    &amp; \because a(u, \phi_j) = L(\phi_j), \forall j \\
+    &amp; \therefore \text{上式成立} \\
+\end{aligned}
+\]</span></p>
+<p>由此证得：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; a(u,v) = L(v) \quad \forall v \in V \\
+\Leftrightarrow
+&amp; \sum c_i a(\phi_i, \phi_j) = L(\phi_j) \quad \forall j \\
+\end{aligned}
+\]</span></p>
+<p><span class="math inline">\(\sum c_i a(\phi_i, \phi_j) = L(\phi_j),
+\forall j\)</span> 是一个以<span
+class="math inline">\(\{c_i\}\)</span>为未知数的线性方程组。</p>
+<h2 id="边界条件">1.5. 边界条件</h2>
+<p>至今我们都只关注在边值问题中的微分方程部分<span
+class="math inline">\(\mathcal{L}(u)=0\)</span>，
+而没有讨论边界条件<span
+class="math inline">\(\mathcal{B}_i(u)=0\)</span>。</p>
+<p>为了简化问题，这里我们只允许两类边界条件：</p>
+<ol type="1">
+<li><strong>狄利克雷边界条件(Dirichlet boundary condition)</strong>
+：<span
+class="math inline">\(\mathcal{B}_i(u)=u(x_i)-g(x_i)\)</span>，<span
+class="math inline">\(g\)</span>为某个已知函数。</li>
+<li><strong>诺依曼边界条件(Neumann boundary condition)</strong> ：<span
+class="math inline">\(\mathcal{B}_i(u)=u&#39;(x_i)-g(x_i)\)</span>，<span
+class="math inline">\(g\)</span>为某个已知函数。</li>
+</ol>
+<h3 id="狄利克雷条件">1.5.1. 狄利克雷条件</h3>
+<p>为了让近似解<span
+class="math inline">\(u\)</span>完全满足狄利克雷边界条件，我们修改试空间，使<span
+class="math inline">\(\forall v \in V: \mathcal{B}_i(v)=0\)</span>，
+即让试空间<span
+class="math inline">\(V\)</span>中的所有函数都满足狄利克雷边界条件，
+那么近似解<span class="math inline">\(u\in
+V\)</span>自然也就满足狄利克雷边界条件了。</p>
+<p>不过要注意这一做法仅适合用于处理齐次狄利克雷边界条件<span
+class="math inline">\(\mathcal{B}_i(v) = v(x_i) = 0\)</span>，
+而对非齐次的狄利克雷边界条件<span
+class="math inline">\(\mathcal{B}_i(v)=v(x_i) = C \neq 0\)</span>
+如果也使用该方法的话， 就会导致<span
+class="math inline">\(V\)</span>不可能是线性空间：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp;\qquad v_1, v_2 \in V \\
+&amp;\Rightarrow v_1(x_i)=v_2(x_i)=C \\
+&amp;\Rightarrow v_1(x_i)-v_2(x_i) = 0 \neq C \\
+&amp;\Rightarrow v_1 - v_2 \notin V
+\end{aligned}
+\]</span></p>
+<p>而<span class="math inline">\(V\)</span>如果不是线性空间的话，
+也就无法应用上文1.4.1节中的技巧来将弱形式转化为线性方程组了。</p>
+<p>所以非齐次的狄利克雷边界条件处理起来是需要一些技巧的。
+本文将跳过这部分，请参阅[1]的1.11节和第4章。</p>
+<p>【TODO：[1]中的讨论缺乏理论支撑，而[2]中的理论分析则仅对齐次狄利克雷边界条件进行，我需要再去查阅一下对非齐次狄利克雷边界条件进行的理论分析】</p>
+<h3 id="诺依曼边界条件">1.5.2. 诺依曼边界条件</h3>
+<h4 id="对1的反驳">1.5.2.1. 对[1]的反驳</h4>
+<p>在[1]的2.2节中给出了一种处理诺依曼边界条件的方法， 该方法将<span
+class="math inline">\(u&#39;(x_i)=g(x_i)\)</span>通过分部积分的方法联立进了弱形式，从而避免了显式处理诺依曼边界条件。
+<strong>但该方法是错误的</strong>，下文分析它为何错误。</p>
+<p>假设问题为如下边值问题：</p>
+<p><span class="math display">\[
+u&#39;&#39;+2=0, \Omega=[0,1]
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    &amp; u(0) = 0 \\
+    &amp; u&#39;(1) = C \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>使用伽辽金法进行求解，得到用于求解近似解<span
+class="math inline">\(u\)</span>的变分问题：</p>
+<p><span class="math display">\[
+(R,v)=0 \quad \forall v \in V
+\]</span></p>
+<p>其中<span class="math inline">\(\forall v \in V: v(0) = 0\)</span>，
+即使用上一节介绍的狄利克雷边界条件处理方法直接修改了试空间。</p>
+<p>对<span class="math inline">\((R,v)\)</span>应用分部积分得到：</p>
+<p><span class="math display">\[
+\begin{aligned}
+(R, v) &amp;= \int_\Omega (u&#39;&#39;+2)vdx \\
+&amp;= -\int_\Omega u&#39;v&#39;dx + u&#39;v|^1_0 + 2\int_\Omega vdx \\
+&amp;= -\int_\Omega u&#39;v&#39;dx + u&#39;(1)v(1) + 2\int_\Omega vdx \\
+\end{aligned}
+\]</span></p>
+<p>其中最后一步应用了试空间的条件<span class="math inline">\(\forall v
+\in V: v(0)=0\)</span>。</p>
+<p>将强形式<span class="math inline">\((R,v)=0, \forall v \in
+V\)</span>转为弱形式。 这里[1]中的做法是将边界条件<span
+class="math inline">\(u&#39;(1)=C\)</span>也联立进弱形式中，所以<span
+class="math inline">\(u&#39;(1)v(1)=Cv(1)\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    a(u,v) = L(v) \quad \forall v \in V \\
+\end{aligned}
+\]</span></p>
+<p><span class="math display">\[
+\text{where}\left\{
+\begin{aligned}
+    &amp; a(u,v) = \int_\Omega u&#39;v&#39; dx \\
+    &amp; L(v) = Cv(1) + 2\int_\Omega vdx \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>[1]中称求解该弱形式得到的<span
+class="math inline">\(u\)</span>能同时满足原变分问题和诺依曼边界条件。
+但在下文的推导中我们将看到这并不成立。</p>
+<p>当上文的弱形式成立时有：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp;\quad a(u,v) - L(v) = 0 \\
+&amp;\Rightarrow \int_\Omega u&#39;v&#39; dx - Cv(1) - 2\int_\Omega vdx
+= 0 \\
+&amp;\Rightarrow u&#39;v|^1_0 - \int_\Omega u&#39;&#39;v dx - Cv(1) -
+2\int_\Omega vdx = 0 \\
+&amp;\Rightarrow u&#39;(1)v(1) - Cv(1) = \int_\Omega u&#39;&#39;v dx +
+2\int_\Omega vdx \\
+&amp;\Rightarrow u&#39;(1)v(1) - Cv(1) = (R,v) \\
+\end{aligned}
+\]</span></p>
+<p>如果<span
+class="math inline">\(u&#39;(1)=C\)</span>，那么从上式可以推出<span
+class="math inline">\((R,v)=0\)</span>，也就是原变分问题成立。</p>
+<p>但当<span class="math inline">\(u&#39;(1)\neq
+C\)</span>时上式无法推得<span
+class="math inline">\((R,v)=0\)</span>，也就会导致弱形式和原变分问题不等价。</p>
+<p>因此[1]中的将诺依曼边值条件联立进弱形式的做法是错误的，
+该做法并不能推得一个与原变分形式等价的弱形式。</p>
+<p>我在网上看到的一种流行说法是</p>
+<blockquote>
+<p>因为弱形式对任意<span class="math inline">\(v \in V\)</span>都成立，
+所以它也对满足<span class="math inline">\(v(1)=0\)</span>的<span
+class="math inline">\(v\)</span>成立。 因此当<span
+class="math inline">\(v(1)=0\)</span>时，弱形式成立的话就有<span
+class="math inline">\((R,v)=0\)</span>。</p>
+</blockquote>
+<p>这相当于是修改了试空间<span
+class="math inline">\(V\)</span>，给它追加了条件<span
+class="math inline">\(\forall v \in V: v(1)=0\)</span>，
+这使得上文的左边<span class="math inline">\(u&#39;(1)v(1) -
+Cv(1)=0\)</span>， 也就得到右边<span
+class="math inline">\((R,v)=0\)</span>，也就是强形式成立。</p>
+<p>尽管此时弱形式和强形式等价，但<span
+class="math inline">\(u&#39;(1)\)</span>却可以取任意值！
+诺依曼边界条件并不一定被满足！</p>
+<p>因此无论如何都无法通过将<span
+class="math inline">\(u&#39;(1)=0\)</span>这个诺依曼边界条件联立进弱形式的方法来处理该边界条件。</p>
+<h4 id="正确做法">1.5.2.2. 正确做法</h4>
+<p>参照[4]中的做法， 诺依曼边界条件的处理方法与狄利克雷边界条件一样，
+都是修改试空间<span class="math inline">\(V\)</span>，使得所有<span
+class="math inline">\(v \in V\)</span>都满足边界条件。</p>
+<p>不过同样的，该方法也只对齐次诺依曼边界条件成立。
+例如，设有非齐次诺依曼边界条件<span
+class="math inline">\(v&#39;(x_i)=1\)</span>， 则有：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp;\qquad v_1, v_2 \in V \\
+&amp;\Rightarrow v_1&#39;(x_i)=v_2&#39;(x_i)=1 \\
+&amp;\Rightarrow v_1&#39;(x_i)-v_2&#39;(x_i) = 0 \neq 1 \\
+&amp;\Rightarrow v_1 - v_2 \notin V
+\end{aligned}
+\]</span></p>
+<p>【TODO：给出非齐次诺依曼边界条件的处理方法】</p>
+<h2 id="例子">1.6. 例子</h2>
+<p>这节给出伽辽金法求解边值问题的例子。</p>
+<p>我用<a
+href="https://www.sympy.org/en/index.html">sympy</a>计算推导了该例子，本文将重点放在思路的进行上，具体的计算细节请参见代码：<a
+href="https://colab.research.google.com/drive/1jdlnU0oIOaihFI-Vvq_827tEui1Actct?usp=sharing">colab链接</a></p>
+<p>我们以以下一维边值问题为例：</p>
+<p><span class="math display">\[
+-u&#39;&#39;=2 \quad x \in [0,1]
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    u(0) = 0 \\
+    u(1) = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>该问题的精确解<span class="math inline">\(u_e = -x^2 +
+x\)</span>。</p>
+<h3 id="写出变分形式及弱形式">1.6.1. 写出变分形式及弱形式</h3>
+<p>使用伽辽金法求解该边值问题就是要求解其对应的变分问题（变分问题的解<span
+class="math inline">\(u\)</span>即为满足Céa引理条件的试函数<span
+class="math inline">\(u\)</span>）：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    &amp; (R, v) = 0 &amp; \forall v \in V \\
+\Leftrightarrow &amp; \int_0^1 (u&#39;&#39;+2)vdx = 0 &amp; \forall v
+\in V \\
+\Leftrightarrow &amp; \int_0^1 u&#39;v&#39;dx = 2\int_0^1vdx &amp;
+\forall v \in V \\
+\Leftrightarrow &amp; a(u,v) = L(v) &amp; \forall v \in V \\
+\end{aligned}
+\]</span></p>
+<p>第二步应用了分部积分和边界条件。其中</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    &amp; a(u,v) = \int_0^1 u&#39;v&#39;dx \\
+    &amp; L(v) = 2\int_0^1 v dx \\
+\end{aligned}
+\right.
+\]</span></p>
+<h3 id="构造试空间">1.6.2. 构造试空间</h3>
+<p>我们选取以下函数作为试空间的基：</p>
+<p><span class="math display">\[
+\phi_i = \sin(i\pi x) \quad i = 1,2
+\]</span></p>
+<p>我们不作证明地默认<span
+class="math inline">\(\{\phi_i\}\)</span>线性无关。 则试空间<span
+class="math inline">\(V\)</span>由<span
+class="math inline">\(\{\phi_i\}\)</span>生成： 即<span
+class="math inline">\(\forall v \in V\)</span>，总能找到一组常数<span
+class="math inline">\(\{c_i\}\)</span>使得<span class="math inline">\(v
+= \sum c_i \phi_i\)</span>。</p>
+<p>此时因为<span class="math inline">\(\phi_i(0)=0,
+\phi_i(1)=0\)</span>， 所以<span class="math inline">\(\forall v \in V:
+v(0)=0, v(1)=0\)</span>， 即试空间中的任意函数都满足边界条件。</p>
+<h3 id="将线性弱形式转为线性方程组">1.6.3.
+将线性弱形式转为线性方程组</h3>
+<p>设试函数<span class="math inline">\(u=\sum c_i
+\phi_i\)</span>，直接套用1.4.1节的结论：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; a(u,v) = L(v) &amp; \forall v \in V \\
+\Leftrightarrow
+&amp; \sum c_i a(\phi_i, \phi_j) = L(\phi_j) &amp; \forall j=1,2 \\
+\end{aligned}
+\]</span></p>
+<p>计算<span class="math inline">\(a(\phi_i, \phi_j),
+L(\phi_j)\)</span>，代入可得线性方程组：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    &amp; \frac{\pi^2}{2}c_1 &amp;+ 0 &amp;= \frac{4}{\pi} \\
+    &amp; 0 &amp;+ 2\pi^2c_2 &amp;= 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<h3 id="求解线性方程组">1.6.4. 求解线性方程组</h3>
+<p>求解上式得到：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+c_1 &amp;= \frac{8}{\pi^3} \\
+c_2 &amp;= 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>代入<span class="math inline">\(u=\sum c_i
+\phi_i\)</span>，得到近似解<span class="math inline">\(u\)</span>：</p>
+<p><span class="math display">\[
+u = \frac{8}{\pi^3} \sin(\pi x)
+\]</span></p>
+<h3 id="检验结果">1.6.5. 检验结果</h3>
+<p>显然<span class="math inline">\(u = \frac{8}{\pi^3} \sin(\pi
+x)\)</span>是满足边界条件的。</p>
+<p>绘制它与精确解的函数图像（橙线为本节得出的近似解）：</p>
+<p><img src="sin_exact.png" /></p>
+<h1 id="使用有限元基函数构造试空间">2. 使用有限元基函数构造试空间</h1>
+<h2 id="动机">2.1. 动机</h2>
+<p>使用伽辽金法求解边值问题的步骤可以概述如下：</p>
+<ol type="1">
+<li>构造合适的试空间<span class="math inline">\(V\)</span>，使<span
+class="math inline">\(v\in V\)</span>都满足边界条件</li>
+<li>写出变分形式<span class="math inline">\((R,v)=0, \forall v \in
+V\)</span>（与其等效的弱形式<span
+class="math inline">\(a(u,v)=L(v)\)</span>）</li>
+<li>求解变分形式方程组得到试函数<span
+class="math inline">\(u\)</span>中的待定系数，得到近似解<span
+class="math inline">\(u\)</span></li>
+</ol>
+<p>可以看出问题的关键是构造合适的<span
+class="math inline">\(V\)</span>，它能:</p>
+<ul>
+<li>满足边界条件</li>
+<li>让方程组容易求解</li>
+</ul>
+<p>使用有限元基函数构造的试空间<span
+class="math inline">\(V\)</span>就满足这两个需求。</p>
+<h2 id="试函数分段多项式">2.2. 试函数：分段多项式</h2>
+<p>我们选择使用 <strong>分段多项式(Piecewise Polynomial)</strong>
+来构造试函数（也就是每段都是多项式函数的分段函数），例如：</p>
+<p><img src="2023-01-20-07-53-10.png" /></p>
+<p>这是因为：</p>
+<ul>
+<li>边界条件只会影响到靠近边界的那一段函数</li>
+<li>通过选取合适的系数，多项式函数很容易满足边界条件（例如对于多项式<span
+class="math inline">\(x+b\)</span>，只要使<span
+class="math inline">\(b=-x_i\)</span>就能在<span
+class="math inline">\(x=x_i\)</span>时归0）</li>
+<li>分段多项式函数构成的试空间为有限维线性空间，因此可以应用1.4.1节的技巧来将变分问题转换为线性方程组，便于求解</li>
+</ul>
+<h2 id="剖分与单元">2.3. 剖分与单元</h2>
+<p>首先将定义域<span class="math inline">\(\Omega\)</span>剖分，得到
+<strong>剖分(subdivision)</strong> <span
+class="math inline">\(\mathcal{T}\)</span>（剖分的定义见[2]的3.3.8，简单来说就是不相交的子集集合，其并集为整个<span
+class="math inline">\(\Omega\)</span>）。 将剖分中的一个子集称为一个
+<strong>单元(element)</strong> 。</p>
+<p>设在任意单元<span class="math inline">\(K \in
+\mathcal{T}\)</span>内试函数都是一个多项式函数<span
+class="math inline">\(P_K\)</span>，称其为 <strong>形函数(shape
+function)</strong> ，整个定义域上的分段多项式<span
+class="math inline">\(P\)</span>为：</p>
+<p><span class="math display">\[
+P|_K = P_K
+\]</span></p>
+<p>即<span class="math inline">\(P\)</span>在<span
+class="math inline">\(K\)</span>中等于<span
+class="math inline">\(P_K\)</span>。</p>
+<h2 id="多项式空间mathcalp_m与基函数">2.4. 多项式空间<span
+class="math inline">\(\mathcal{P}_m\)</span>与基函数</h2>
+<p>接下来我们定义单元内的多项式函数<span
+class="math inline">\(P_K\)</span>。</p>
+<p>为了方便，记<span
+class="math inline">\(\mathcal{P}_m\)</span>为由最高次数小于等于<span
+class="math inline">\(m\)</span>的多项式构成的函数空间。</p>
+<p>我们的目标是在多项式函数空间<span
+class="math inline">\(\mathcal{P}_m\)</span>里找到一组合适的基<span
+class="math inline">\(\{\phi_i\}\)</span>：即存在常系数<span
+class="math inline">\(\{c_i\}\)</span>使得<span
+class="math inline">\(P_K=\sum c_i \phi_i\)</span>。</p>
+<p>任何基都是合法的，例如当<span class="math inline">\(x\in
+R^1\)</span>，对于函数空间<span
+class="math inline">\(\mathcal{P}_1\)</span>，基<span
+class="math inline">\(\{\phi_1=x,
+\phi_2=1\}\)</span>是合法的，我们可以设<span class="math inline">\(P_K =
+c_1x + c_2\)</span>，然后用<span
+class="math inline">\(P_K\)</span>构造<span
+class="math inline">\(\Omega\)</span>上的分段多项式函数<span
+class="math inline">\(P\)</span>，再把<span
+class="math inline">\(P\)</span>作为试函数代入变分形式<span
+class="math inline">\((R,v)=0, \forall v \in
+V\)</span>中进行求解，最终得到<span class="math inline">\(c_1,
+c_2\)</span>。</p>
+<p>我们选取的基函数为有限元基函数。</p>
+<h2 id="有限元基函数拉格朗日线性三角元">2.5.
+有限元基函数：拉格朗日线性三角元</h2>
+<p><strong>有限元基函数(Finite Element Basis)</strong>
+的形式化定义方法和其他常见的构造方法(e.g. Hermite Element, Argyris
+Element)参见[2]的第3章和[3]的第9章，本文将只介绍
+<strong>拉格朗日线性三角元(Lagrange Linear Triangular Element)</strong>
+。</p>
+<p>首先先解释一下“拉格朗日线性三角元”的含义：</p>
+<ul>
+<li>三角元：意味着单元空间<span
+class="math inline">\(K\)</span>是一个二维平面上的三角形。</li>
+<li>线性：意味着构造的多项式函数<span
+class="math inline">\(P_K\)</span>为一次函数，即<span
+class="math inline">\(P_K \in \mathcal{P}_1\)</span>。</li>
+<li>拉格朗日：意味着我们只使用顶点值来构造基函数，而不使用顶点上的导数值。与之相对的是Hermite使用顶点的一阶导数，Argyris使用顶点的二阶导数。（名字来源是拉格朗日插值多项式）（并不一定是顶点，也可以是边上的点、内部的点，但这里我们简化讨论，只考虑三角形顶点）</li>
+</ul>
+<p><img src="2023-01-20-09-15-28.png" /></p>
+<p>设<span class="math inline">\(K\)</span>的三个顶点分别为<span
+class="math inline">\(A, B, C\)</span>，其空间坐标为<span
+class="math inline">\(\mathbf{x}_1, \mathbf{x}_2,
+\mathbf{x}_3\)</span>，有<span class="math inline">\(\mathbf{x}_i \in
+R^2\)</span>。</p>
+<p>有限元基函数<span class="math inline">\(\phi_i\)</span>应当满足：</p>
+<p><span class="math display">\[
+\phi_i(\mathbf{x}_j) =
+\left\{
+\begin{aligned}
+    &amp;1 \quad \text{if } i=j \\
+    &amp;0 \quad \text{if } i\neq j
+\end{aligned}
+\right.
+\]</span></p>
+<p>即有限元基函数<span class="math inline">\(\phi_i\)</span>仅在<span
+class="math inline">\(\mathbf{x}_i\)</span>上取值为1，而在其他顶点上都取值为0。
+该式也被记为<span
+class="math inline">\(\phi_i(\mathbf{x}_j)=\delta_{ij}\)</span>，其中<span
+class="math inline">\(\delta_{ij}\)</span>为
+<strong>克罗内克函数(Kronecker delta)</strong> 。</p>
+<p>利用有限元基函数的这一要求和<span class="math inline">\(\phi_i \in
+\mathcal{P}_1\)</span>的条件，我们可以求出<span
+class="math inline">\(\phi_i\)</span>——</p>
+<p>以<span class="math inline">\(\phi_1\)</span>为例。 由<span
+class="math inline">\(\phi_1 \in \mathcal{P}_1\)</span>可设<span
+class="math inline">\(\phi_1(\mathbf{x}) = (k_1, k_2) \cdot \mathbf{x} +
+k_3\)</span>， 而因为<span
+class="math inline">\(\phi_1\)</span>仅在<span
+class="math inline">\(\mathbf{x}_1\)</span>上取值为1，而在<span
+class="math inline">\(\phi_2,
+\phi_3\)</span>上都取值为0，所以可得方程组：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    (k_1, k_2) \cdot \mathbf{x}_1 + k_3 = 1 \\
+    (k_1, k_2) \cdot \mathbf{x}_2 + k_3 = 0 \\
+    (k_1, k_2) \cdot \mathbf{x}_3 + k_3 = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>它是一个关于<span class="math inline">\(k_1, k_2,
+k_3\)</span>的线性方程组，只要<span class="math inline">\(\mathbf{x}_1,
+\mathbf{x}_2,
+\mathbf{x}_3\)</span>不共线就一定有唯一解或无解。解得：</p>
+<p><span class="math display">\[
+M := x_1y_2-x_3y_2-x_1y_3-x_2y_1+x_3y_1+x_2y_3
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    k_1 &amp;= \frac{y_2-y_3}{M} \\
+    k_2 &amp;= \frac{x_1-x_2}{M} \\
+    k_3 &amp;= \frac{x_3y_3-x_3y_2+x_2y_3-x_1y_3}{M} \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>其中<span class="math inline">\(x_i, y_i\)</span>为<span
+class="math inline">\(\mathbf{x}_i\)</span>的分量，即<span
+class="math inline">\(\mathbf{x}_i=(x_i, y_i)\)</span>。</p>
+<p>同理可求得<span class="math inline">\(\phi_2, \phi_3\)</span>。</p>
+<p>此处略去证明<span class="math inline">\(\{\phi_1, \phi_2,
+\phi_3\}\)</span>为<span
+class="math inline">\(\mathcal{P}_1\)</span>的一组基的过程。
+（提示：因为二维情况下<span
+class="math inline">\(dim\mathcal{P}_1=3\)</span>，所以只要证明<span
+class="math inline">\(\phi_1, \phi_2,
+\phi_3\)</span>线性无关即可。）</p>
+<p>设单元<span class="math inline">\(K_i\)</span>中的基为<span
+class="math inline">\(\mathbb{B}_i\)</span>， 将不同单元<span
+class="math inline">\(K_i\)</span>中定义在相同顶点上的函数拼接为分段函数，然后对<span
+class="math inline">\(\mathbb{B}_i\)</span>取并集得到<span
+class="math inline">\(\mathbb{B}\)</span>。 此处略去证明<span
+class="math inline">\(\mathbb{B}\)</span>线性无关的过程。 于是<span
+class="math inline">\(\mathbb{B}\)</span>为定义域<span
+class="math inline">\(\Omega\)</span>上的一组基。</p>
+<p><strong>后文中提及基函数时默认是指定义域<span
+class="math inline">\(\Omega\)</span>上的基，而不是单元<span
+class="math inline">\(K\)</span>内的基函数。</strong></p>
+<h2 id="边界条件-1">2.6. 边界条件</h2>
+<h3 id="狄利克雷边界条件">2.6.1. 狄利克雷边界条件</h3>
+<p>下面讨论在使用有限元基函数时该怎么让试函数满足狄利克雷边界条件。</p>
+<p>首先要假设所有狄利克雷边界点都在三角元的顶点上。
+尽管落在其他位置的情况也可以处理，但那就超出拉格朗日线性元可以方便处理的范畴了，因此此处为了简化讨论还是假设边界点都在顶点上。</p>
+<p>设在单元<span
+class="math inline">\(K\)</span>中三个顶点的空间坐标分别为<span
+class="math inline">\(\mathbf{x}_1, \mathbf{x}_2,
+\mathbf{x}_3\)</span>，有(齐次)狄利克雷边界条件为<span
+class="math inline">\(u(\mathbf{x}_1)=0\)</span>。</p>
+<p>在[1]的4.3中给出了一种调整线性方程组的方法使得方程组的解<span
+class="math inline">\(u\)</span>能够满足狄利克雷边界条件，该方法如下——</p>
+<p>设单元<span class="math inline">\(K\)</span>内的基函数为<span
+class="math inline">\(\{\phi_i\}\)</span>，且该单元内的多项式函数<span
+class="math inline">\(P_K=\sum c_i \phi_i\)</span>，则有：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    u(\mathbf{x}_1)
+    = P|_K(\mathbf{x}_1)
+    = P_K(\mathbf{x}_1)
+    = \sum c_i \phi_i(\mathbf{x}_1)
+    = c_1
+\end{aligned}
+\]</span></p>
+<p>其中最后一步是因为<span
+class="math inline">\(\phi_i(\mathbf{x}_j)=\delta_{ij}\)</span>。</p>
+<p>于是由推得的<span
+class="math inline">\(u(\mathbf{x}_1)=c_1\)</span>可知， 要让<span
+class="math inline">\(v\in V\)</span>满足边界条件<span
+class="math inline">\(u(\mathbf{x}_1)=0\)</span>， 就是要让<span
+class="math inline">\(c_1=0\)</span>。 而<span
+class="math inline">\(c_1\)</span>是我们想要求解的一个未知系数。</p>
+<p>[1]中的做法是在最后调整线性方程组， 用<span
+class="math inline">\(c_1=0\)</span>替换掉<span
+class="math inline">\(\sum c_i a(\phi_i, \phi_1) =
+L(\phi_1)\)</span>：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+&amp; c_1 = 0 \\
+&amp; \sum c_i a(\phi_i, \phi_j) = L(\phi_j) \quad \forall j \neq 1 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>显然，此时该方程组的解中<span
+class="math inline">\(c_1=0\)</span>，从而也就满足了<span
+class="math inline">\(u(\mathbf{x}_1)=0\)</span>的边界条件。</p>
+<h3 id="对1的补充">2.6.1.1. 对[1]的补充</h3>
+<p>[1]中称<span class="math inline">\(\phi_1\)</span>不用修改，
+但如果不修改<span
+class="math inline">\(\phi_1\)</span>的话该做法会导致<span
+class="math inline">\(0 = \sum c_i a(\phi_i, \phi_1) \neq
+L(\phi_1)\)</span>。 [1]中没有对该问题进行进一步讨论。</p>
+<p>我认为为了让修改后的线性方程组与弱形式等价， 此处应该修改<span
+class="math inline">\(\phi_1\)</span>，使<span
+class="math inline">\(\phi_1 \equiv 0\)</span>。</p>
+<p>使<span class="math inline">\(\phi_1 \equiv 0\)</span>，则有：</p>
+<p><span class="math display">\[
+\begin{aligned}
+L(\phi_1) = L(0) = 0 \\
+\sum c_i a(\phi_i, \phi_1) = 0
+\end{aligned}
+\]</span></p>
+<p>于是不管<span class="math inline">\(c_i\)</span>取何值，<span
+class="math inline">\(\sum c_i a(\phi_i, \phi_0) =
+L(\phi_0)\)</span>恒成立。</p>
+<p>注意到因为<span class="math inline">\(\phi_1 \equiv 0\)</span>，
+所以<span class="math inline">\(\phi_1\)</span>和其他任何<span
+class="math inline">\(\phi_i\)</span>都线性相关， 这样就导致<span
+class="math inline">\(\{\phi_i\}\)</span>不再构成一组基。 不过<span
+class="math inline">\(\{\phi_i, i \neq 1\}\)</span>依然构成基，
+而且对任意试函数<span class="math inline">\(u=\sum c_i \phi_i, i \neq
+1\)</span>都有 <span class="math inline">\(u(x_1) = 0\)</span>。</p>
+<p>因此[1]中修改线性方程组的做法实际上是降低了试空间的维度，
+并使得试函数在边界点上恒为0。</p>
+<p>上文的讨论只是理论上的补足， 实际操作中[1]中不修改<span
+class="math inline">\(\phi_1\)</span>也不会影响到最后解的正确性：
+因为当<span class="math inline">\(c_1=0\)</span>时， <span
+class="math inline">\(\phi_1\)</span>对最后得到的近似解<span
+class="math inline">\(u=\sum c_i \phi_i\)</span>是没有贡献的。</p>
+<h3 id="诺依曼边界条件-1">2.6.2 诺依曼边界条件</h3>
+<p>设有(齐次)狄利克雷边界条件为<span
+class="math inline">\(u&#39;(\mathbf{x}_1)=0\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    u&#39;(\mathbf{x}_1)
+    = P&#39;|_K(\mathbf{x}_1)
+    = P&#39;_K(\mathbf{x}_1)
+    = \sum c_i \phi_i&#39;(\mathbf{x}_1)
+    = c_1 \phi_1&#39;(\mathbf{x}_1)
+\end{aligned}
+\]</span></p>
+<p>其中最后一步是因为<span
+class="math inline">\(\phi_i&#39;(\mathbf{x}_j)=0, \forall i \neq
+j\)</span>。</p>
+<p>因此要使<span
+class="math inline">\(u&#39;(x_1)=0\)</span>，就是要让<span
+class="math inline">\(c_1=0\)</span>。
+于是就变成和狄利克雷边界条件一样的情况了，用相同的处理方法即可。</p>
+<p>【TODO：在使用有限元基函数时，非齐次的边界条件会不会也变得容易处理了？】</p>
+<h2 id="连续性与误差估计">2.7. 连续性与误差估计</h2>
+<p>使用拉格朗日元构造的试空间在连续性和与精确解之间的误差上有以下性质：</p>
+<ol type="1">
+<li>连续性（见[2]的3.3.17）：试函数<span
+class="math inline">\(P\)</span>至少一阶可导，但导函数不一定连续，即<span
+class="math inline">\(P \in C^0\)</span>。
+<ul>
+<li>连续性确保了试函数<span
+class="math inline">\(u\)</span>总是一阶可导，所以在求解二阶微分方程时能代入弱形式<span
+class="math inline">\(a(u,v)=L(v), \forall v \in
+V\)</span>进行计算。</li>
+</ul></li>
+<li>误差估计（见[2]的4.4.28和[2]的5.4.8）：求解变分形式<span
+class="math inline">\((R,v)=0, \forall v \in
+V\)</span>后得到的近似解<span
+class="math inline">\(u\)</span>与边值问题的精确解<span
+class="math inline">\(u_e\)</span>之间的差值满足：
+<ul>
+<li><span class="math inline">\(||u_e-u||_{L^2(\Omega)} \leq C h^{m+1}
+||u_e||_{H^{m+1}(\Omega)}\)</span></li>
+<li>其中<span
+class="math inline">\(C\)</span>为与剖分形状相关的常系数，<span
+class="math inline">\(h\in
+(0,1]\)</span>为单元直径关于定义域直径的比例，<span
+class="math inline">\(m\)</span>为基函数的最高次数（即<span
+class="math inline">\(\mathcal{P}_m\)</span>的<span
+class="math inline">\(m\)</span>），<span
+class="math inline">\(\Omega\)</span>为定义域，<span
+class="math inline">\(H^{m+1}=W^{m+1}_2\)</span>为索博列夫空间（不知道索博列夫空间是什么也没影响）。</li>
+<li>可以理解为近似解<span
+class="math inline">\(u\)</span>的误差关于<span
+class="math inline">\(h^{m+1}\)</span>呈线性关系：
+<ul>
+<li>剖分得越细，<span
+class="math inline">\(h\)</span>就越小，误差也就越小</li>
+<li>使用越高次的多项式作基函数，<span
+class="math inline">\(h^{m+1}\)</span>就越小，误差也就越小</li>
+</ul></li>
+</ul></li>
+</ol>
+<h2 id="例子-1">2.8. 例子</h2>
+<p>本节给出使用有限元基函数构造试函数，然后使用伽辽金法计算边值问题近似解的例子。</p>
+<p>我用sympy计算推导了该例子（与1.6节的是同一个）：<a
+href="https://colab.research.google.com/drive/1jdlnU0oIOaihFI-Vvq_827tEui1Actct?usp=sharing">colab链接</a></p>
+<p>依然沿用1.6节的边值问题：</p>
+<p><span class="math display">\[
+-u&#39;&#39;=2 \quad x \in [0,1]
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    u(0) = 0 \\
+    u(1) = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>该问题的精确解<span class="math inline">\(u_e = -x^2 +
+x\)</span>。</p>
+<p>当使用1.6.2节中的试函数<span class="math inline">\(\phi_i = \sin(i\pi
+x), i=1,2\)</span>时，近似解<span class="math inline">\(u_s =
+\frac{8}{\pi^3} \sin(\pi x)\)</span>。</p>
+<h3 id="写出变分形式及弱形式-1">2.8.1. 写出变分形式及弱形式</h3>
+<p>与1.6.1一样，最终得到线性弱形式：</p>
+<p><span class="math display">\[
+a(u,v) = L(v) \quad \forall v \in V
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    &amp; a(u,v) = \int_0^1 u&#39;v&#39;dx \\
+    &amp; L(v) = 2\int_0^1 v dx \\
+\end{aligned}
+\right.
+\]</span></p>
+<h3 id="构造试空间-1">2.8.2. 构造试空间</h3>
+<h4 id="剖分定义域">2.8.2.1. 剖分定义域</h4>
+<p>将定义域<span class="math inline">\(\Omega = \{x: x\in
+[0,1]\}\)</span>均匀剖分为<span
+class="math inline">\(N\)</span>个单元，并设第<span
+class="math inline">\(i\)</span>个单元为<span
+class="math inline">\(e_i\)</span>，其左端点为<span
+class="math inline">\(x_i=\frac{i}{N}\)</span>（<span
+class="math inline">\(i\)</span>从0计数），并记最右的端点为<span
+class="math inline">\(x_N=1\)</span>。 如下图所示：</p>
+<p><img src="subdivide.drawio.png" /></p>
+<h4 id="计算有限元基函数">2.8.2.2. 计算有限元基函数</h4>
+<p>按照2.5节中的方法计算线性分段函数<span
+class="math inline">\(\phi_i\)</span>（它在每个单元<span
+class="math inline">\(e_i\)</span>中为线性函数）：</p>
+<p><span class="math display">\[
+\phi_i =
+\left\{
+\begin{aligned}
+    &amp; \frac{1}{x_i-x_{i-1}}x-\frac{x_{i-1}}{x_i-x_{i-1}} &amp;\quad
+\text{for } x_{i-1} \leq x &lt; x_i \\
+    &amp; \frac{1}{x_i-x_{i+1}}x-\frac{x_{i+1}}{x_i-x_{i+1}} &amp;\quad
+\text{for } x_i \leq x &lt; x_{i+1} \\
+    &amp; 0 &amp;\quad \text{otherwise}
+\end{aligned}
+\right.
+\]</span></p>
+<p>即如下图所示：</p>
+<p><img src="fem_phi.drawio.png" /></p>
+<p>我们不加证明地默认<span
+class="math inline">\(\{\phi_i\}\)</span>线性无关。</p>
+<h3 id="将线性弱形式转为线性方程组-1">2.8.3.
+将线性弱形式转为线性方程组</h3>
+<p>同1.6.3节，设试函数<span class="math inline">\(u=\sum c_i
+\phi_i\)</span>，直接套用1.4.1节的结论：</p>
+<p><span class="math display">\[
+\begin{aligned}
+&amp; a(u,v) = L(v) &amp; \forall v \in V \\
+\Leftrightarrow
+&amp; \sum c_i a(\phi_i, \phi_j) = L(\phi_j) &amp; \forall j=0,1,\dots,
+N \\
+\end{aligned}
+\]</span></p>
+<p>其中因为<span
+class="math inline">\(\phi_i\)</span>是分段函数，所以<span
+class="math inline">\(a(\phi_i, \phi_j),
+L(\phi_j)\)</span>的计算要比1.6.3节里的麻烦一些。</p>
+<h4 id="逐单元计算">2.8.3.1. 逐单元计算</h4>
+<p>一种常见的计算策略是 <strong>逐单元计算(Cellwise
+Computation)</strong> ，它利用了<span
+class="math inline">\(\{\phi_i\}\)</span>在大多数单元都为0的特性和积分区间可加性来简化计算逻辑。</p>
+<p>由<span
+class="math inline">\(\{\phi_i\}\)</span>在大多数单元都为0的特性容易发现<span
+class="math inline">\(a(\phi_i, \phi_j),
+L(\phi_j)\)</span>可以写为如下形式：</p>
+<p><span class="math display">\[
+a(\phi_i, \phi_j) =
+\left\{
+\begin{aligned}
+    &amp; \int_{x_{i-1}}^{x_{i+1}} (\phi_i&#39;)^2 dx &amp; \quad
+\text{if } j=i \\
+    &amp; \int_{x_{i-1}}^{x_{i}} \phi_i&#39;\phi_{i-1}&#39; dx &amp;
+\quad \text{if } j=i-1 \\
+    &amp; \int_{x_{i}}^{x_{i+1}} \phi_i&#39;\phi_{i+1}&#39; dx &amp;
+\quad \text{if } j=i+1 \\
+    &amp; 0 &amp; \quad \text{otherwise}
+\end{aligned}
+\right.
+\]</span></p>
+<p><span class="math display">\[
+L(\phi_j) = 2 \int_{x_{j-1}}^{x_{j+1}} \phi_j dx
+\]</span></p>
+<p>设<span class="math inline">\(a^{e_i}(u,v),
+L^{e_i}(v)\)</span>为在<span
+class="math inline">\(e_i\)</span>内的局部计算结果，即：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+&amp; a^{e_i}(u,v) = \int_{x_i}^{x_{i+1}} u&#39;v&#39; dx \\
+&amp; L^{e_i}(v) = 2\int_{x_i}^{x_{i+1}} v dx \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>将<span class="math inline">\(a^{e_i}(u,v),
+L^{e_i}(v)\)</span>代入<span class="math inline">\(a(\phi_i, \phi_j),
+L(\phi_j)\)</span>，则由积分区间可加性有：</p>
+<p><span class="math display">\[
+a(\phi_i, \phi_j) =
+\left\{
+\begin{aligned}
+    &amp; a^{e_{i-1}}(\phi_i, \phi_i) + a^{e_i}(\phi_i, \phi_i) &amp;
+\quad \text{if } j=i \\
+    &amp; a^{e_{i-1}}(\phi_i, \phi_{i-1}) &amp; \quad \text{if } j=i-1
+\\
+    &amp; a^{e_{i}}(\phi_i, \phi_{i+1}) &amp; \quad \text{if } j=i+1 \\
+    &amp; 0 &amp; \quad \text{otherwise}
+\end{aligned}
+\right.
+\]</span></p>
+<p><span class="math display">\[
+L(\phi_j) = L^{e_{j-1}}(\phi_j) + L^{e_j}(\phi_j)
+\]</span></p>
+<p>所以我们可以逐单元<span class="math inline">\(e_i\)</span>地计算<span
+class="math inline">\(a^{e_i}(\phi_i, \phi_i), a^{e_i}(\phi_i,
+\phi_{i+1})\)</span>, <span class="math inline">\(a^{e_i}(\phi_{i+1},
+\phi_{i}), a^{e_i}(\phi_{i+1}, \phi_{i+1})\)</span>, <span
+class="math inline">\(L^{e_i}(\phi_i), L^{e_i}(\phi_{i+1})\)</span>，
+然后将它们对应地累加就能得到<span class="math inline">\(a(\phi_i,
+\phi_j), L(\phi_j)\)</span>。</p>
+<h4 id="无边界条件的线性方程组">2.8.3.2. 无边界条件的线性方程组</h4>
+<p>取<span class="math inline">\(N=4\)</span>，即有五个未知数<span
+class="math inline">\(c_0, c_1, c_2, c_3, c_4\)</span>，计算<span
+class="math inline">\(a(\phi_i, \phi_j),
+L(\phi_j)\)</span>得到线性方程组：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+     4c_0 -4c_1 = \frac{1}{4} \\
+    -4c_0 +8c_1 -4c_2 = \frac{1}{2} \\
+    -4c_1 +8c_2 -4c_3 = \frac{1}{2} \\
+    -4c_2 +8c_3 -4c_4 = \frac{1}{2} \\
+    -4c_3 +4c_4 = \frac{1}{4} \\
+\end{aligned}
+\right.
+\]</span></p>
+<h4 id="根据边界条件修改线性方程组">2.8.3.3.
+根据边界条件修改线性方程组</h4>
+<p>按照2.6.1节介绍的方法，我们通过修改线性方程组来确保最后得到的近似解<span
+class="math inline">\(u\)</span>一定满足边界条件。</p>
+<p>具体来说，我们用<span class="math inline">\(c_0=0,
+c_4=0\)</span>替换掉第一个和最后一个方程，得到：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    c_0 = 0 \\
+    -4c_0 +8c_1 -4c_2 = \frac{1}{2} \\
+    -4c_1 +8c_2 -4c_3 = \frac{1}{2} \\
+    -4c_2 +8c_3 -4c_4 = \frac{1}{2} \\
+    c_4 = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<h3 id="求解线性方程组-1">2.8.4. 求解线性方程组</h3>
+<p>求解上式得到：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    &amp; c_0 = 0 \\
+    &amp; c_1 = \frac{3}{16} \\
+    &amp; c_2 = \frac{1}{4} \\
+    &amp; c_3 = \frac{3}{16} \\
+    &amp; c_4 = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>代入<span class="math inline">\(u=\sum c_i
+\phi_i\)</span>，得到近似解<span class="math inline">\(u\)</span>：</p>
+<p><span class="math display">\[
+u=
+\begin{cases}
+\frac{3 x}{4} &amp; \text{for}\: \frac{1}{4} &gt; x \geq 0 \\
+\frac{x}{4} + \frac{1}{8} &amp; \text{for}\: \frac{1}{2} &gt; x \geq
+\frac{1}{4}\\
+\frac{3}{8} - \frac{x}{4} &amp; \text{for}\: \frac{3}{4} &gt; x \geq
+\frac{1}{2} \\
+\frac{3}{4} - \frac{3 x}{4} &amp; \text{for}\: 1 &gt; x \geq \frac{3}{4}
+\\
+0 &amp; \text{otherwise} \end{cases}
+\]</span></p>
+<h3 id="检验结果-1">2.8.5. 检验结果</h3>
+<p>显然<span class="math inline">\(u\)</span>是满足边界条件的。</p>
+<p>绘制它与精确解<span
+class="math inline">\(u_e\)</span>和1.6节求出的近似解<span
+class="math inline">\(u_s\)</span>的函数图像（绿线为本节得出的近似解）：</p>
+<p><img src="fem_sin_exact.png" /></p>
+<h2 id="诺依曼边界条件的一个例子">2.9. 诺依曼边界条件的一个例子</h2>
+<p>我用sympy计算推导了该例子：<a
+href="https://colab.research.google.com/drive/11ZV66Dk8oqbu7XpWqjBycdXoxQvlPu__?usp=sharing">colab链接</a></p>
+<p>设有边值问题：</p>
+<p><span class="math display">\[
+-u&#39;&#39;=2 \quad x \in [0,1]
+\]</span></p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    u(0) = 0 \\
+    u&#39;(1) = 0 \\
+\end{aligned}
+\right.
+\]</span></p>
+<p>其中<span
+class="math inline">\(u&#39;(1)=0\)</span>为诺依曼边界条件。</p>
+<p>该问题的精确解为<span class="math inline">\(u_e = -x^2 +
+2x\)</span>。</p>
+<p>设使用三角函数<span class="math inline">\(\phi_1 = \sin(\frac{\pi
+x}{2}), \phi_2 = \sin(\frac{3\pi
+x}{2})\)</span>作为基函数时用伽辽金法求得的近似解为<span
+class="math inline">\(u_s\)</span>。</p>
+<p>设使用有限元基函数作为基函数时用伽辽金法求得的近似解为<span
+class="math inline">\(u_f\)</span>。</p>
+<p>它们的函数图像为：</p>
+<p><img src="MIX_fem_sin_exact.png" /></p>
+<p>可以看到有限元方法的结果很糟。</p>
+<p>我推测原因是线性有限元方法不太适合处理诺依曼条件，毕竟要想让<span
+class="math inline">\(u&#39;(1)=0\)</span>，那就得要<span
+class="math inline">\(\phi_i&#39;(1)=0\)</span>么，但因为<span
+class="math inline">\(\phi_i\)</span>为线性函数，所以导数为0时就退化成了常值函数。</p>
+<p>【TODO：可能二次有限元能缓解该问题？】</p>
+<h1 id="参考文献">参考文献</h1>
+<ol type="1">
+<li>Stationary variational forms.
+http://hplgit.github.io/num-methods-for-PDEs/doc/pub/index.html.</li>
+<li>Brenner, S. C. &amp; Scott, L. R. The mathematical theory of finite
+element methods. (Springer, 2008).</li>
+<li>Approximation of functions.
+http://hplgit.github.io/num-methods-for-PDEs/doc/pub/index.html.</li>
+<li>曾攀. 1.3 微分方程求解的方法_哔哩哔哩_bilibili.
+https://www.bilibili.com/video/BV1d4411i7Wr/.</li>
+</ol>
+<p>我非常推荐阅读[1]的原文，尽管略有瑕疵，但相较于其他有限元教材而言，[1]具有如下特点：</p>
+<ul>
+<li>作者以专业数学书籍[2]中的讨论作为数学基础，因此其各类方法定义准确、理论扎实。</li>
+<li>作者的行文思路很coder，适合计算机从业人员阅读。</li>
+</ul>
+<p>我还推荐系统学习过勒贝格积分学的读者阅读[2]，该书从纯数学的角度讨论伽辽金法与有限元方法，对于算法编写者而言是非常有用的工具。</p>
+<h1 id="文档日志">文档日志</h1>
+<ul>
+<li>2023.1.24：尽管还剩几个边界条件相关的TODO，但算是完稿了。</li>
+<li>2023.1.18：开始撰写。</li>
+</ul>
+</body>
+</html>

@@ -1,5 +1,8 @@
-#! https://zhuanlan.zhihu.com/p/511502862
-# 论文阅读：Fast Simulation of Mass-Spring Systems
+---
+title: 论文阅读：Fast Simulation of Mass-Spring Systems
+zhihu-url: https://zhuanlan.zhihu.com/p/511502862
+zhihu-tags: 仿真,
+---
 
 本文为对[Fast Simulation of Mass-Spring Systems](https://www.cs.utah.edu/~ladislav/liu13fast/liu13fast.html)的阅读笔记。本文并非翻译性质或公式推导性质的文章，文章的结构和内容与原论文有极大出入，甚至记号都不一致。内容以我个人的理解为主，不过只要我理解没有问题，那本文介绍的方法和原论文里的应该是一致的。
 

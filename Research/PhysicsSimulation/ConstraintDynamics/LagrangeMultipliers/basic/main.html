@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>测试用博客</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://gist.githubusercontent.com/supplient/1726b3acbfed278f54b66cf11129a43b/raw/62b874d98f72005d18b9b2a05d3be6815959b51b/gh-pandoc.css" />
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">测试用博客</h1>
+</header>
+<p>本文将讨论使用 <strong>拉格朗日乘数法(Lagrange Multipliers)</strong>
+对受约束的粒子系统进行物理仿真的过程。</p>
+<p>（“拉格朗日乘数法”这名字是[4]里这么叫的，在[5]里它被叫做Lagrangian
+constraint-based method。）</p>
+<p>（这里的“拉格朗日”和拉格朗日力学没有任何关系，拉格朗日乘数法是一种maximal
+coordinate method。）</p>
+<p>（就我所知，该方法应该是在[1]中被最早提出。）</p>
+<h1 id="记号">记号</h1>
+<ul>
+<li><span
+class="math inline">\(t\)</span>表示某个时刻，也表示时间变量。</li>
+<li><span class="math inline">\(x\)</span>表示某个空间坐标。</li>
+<li><span class="math inline">\(q\)</span>表示系统状态。</li>
+<li><span class="math inline">\(\dot{f} = \frac{\partial f}{\partial
+t}\)</span></li>
+<li><span class="math inline">\(\ddot{f} = \frac{\partial^2 f}{\partial
+t^2}\)</span></li>
+<li><span class="math inline">\(\nabla f = \frac{\partial f}{\partial
+q}\)</span></li>
+</ul>
+<h1 id="问题描述">问题描述</h1>
+<p>太长不看版：系统状态为<span class="math inline">\(q\in
+R^n\)</span>，约束为<span class="math inline">\(C=0, C\in
+R^m\)</span>，外力为<span
+class="math inline">\(F_e\)</span>，待求的约束力为<span
+class="math inline">\(F_c\)</span>。</p>
+<p>%%%%%%%%%%%%%%%%%%%</p>
+<p>考虑一个受约束的粒子系统：</p>
+<p>该系统中有<span class="math inline">\(N_p\)</span>个粒子，
+每个粒子都有<span class="math inline">\(N_f\)</span>个自由度
+（例如一个三维空间中的粒子会在xyz三个方向上各有一个自由度，合计3个自由度），
+用列向量<span class="math inline">\(q_i=[x_i^1, x_i^2, \dots,
+x_i^{N_f}]^T\)</span>表示第<span
+class="math inline">\(i\)</span>个粒子的状态， 用列向量<span
+class="math inline">\(q=[q_1^T, q_2^T, \dots,
+q_{N_p}^T]^T\)</span>表示系统状态。 设<span class="math inline">\(n =
+N_p N_f\)</span>， 则<span class="math inline">\(q \in
+R^n\)</span>。</p>
+<p>该系统的运动受牛顿第二定律<span
+class="math inline">\(F=am\)</span>控制。</p>
+<p>第<span class="math inline">\(i\)</span>个粒子的质量为<span
+class="math inline">\(m_i\)</span>， 它不随时间发生变化，
+在整个仿真过程中都为常量。 并设向量<span
+class="math inline">\(\mathbf{m}_i=[m_i, m_i, \dots, m_i]^T \in
+R^{N_f}\)</span>。 设质量矩阵<span class="math inline">\(M =
+\text{diag}(\mathbf{m}_1, \mathbf{m}_2, \dots,
+\mathbf{m}_{N_p})\)</span>。</p>
+<p>该系统受到<span class="math inline">\(N_c\)</span>个约束， 第<span
+class="math inline">\(i\)</span>个约束表示为<span
+class="math inline">\(C_i(q,t)=0\)</span>， 即系统状态<span
+class="math inline">\(q\)</span>在<span
+class="math inline">\(t\)</span>时刻必须满足<span
+class="math inline">\(C_i(q,t)=0\)</span>。 称<span
+class="math inline">\(C_i\)</span>为约束函数。 若<span
+class="math inline">\(C_i\)</span>约束了系统的<span
+class="math inline">\(N_c^i\)</span>个自由度的话， 那么<span
+class="math inline">\(C_i\)</span>就是<span class="math inline">\(R^n
+\rightarrow R^{N_c^i}\)</span>的函数。 设总的约束函数为<span
+class="math inline">\(C=[C_1^T, C_2^T, \dots, C_{N_c}^T]^T\)</span>，
+则系统要满足的总约束为<span class="math inline">\(C(q,t)=0\)</span>。
+设<span class="math inline">\(m=\sum_i N_c^i\)</span>， 则<span
+class="math inline">\(C: R^n\rightarrow R^m\)</span>。</p>
+<p>（注：本文只考虑完整约束Holonomic constraints）</p>
+<p>该系统受到外力影响， 设第<span
+class="math inline">\(i\)</span>个粒子受到的合外力为<span
+class="math inline">\(F_e^i \in R^{N_f}\)</span>，
+并设系统受到的总的合外力为<span class="math inline">\(F_e=[{F_e^1}^T,
+{F_e^2}^T, \dots, {F_e^{N_p}}^T]^T\)</span>。</p>
+<p>显然，如果只有外力<span class="math inline">\(F_e\)</span>作用的话，
+系统状态<span class="math inline">\(q\)</span>一般不会满足约束<span
+class="math inline">\(C(q,t)=0\)</span>。 因此，
+我们的目标是求得约束力， 使该系统在约束力的作用下系统状态<span
+class="math inline">\(q\)</span>能始终满足约束<span
+class="math inline">\(C(q,t)=0\)</span>。</p>
+<p>设第<span class="math inline">\(i\)</span>个粒子受到的合约束力为<span
+class="math inline">\(F_c^i \in R^{N_f}\)</span>，
+并设系统受到的总的合约束力为<span class="math inline">\(F_c=[{F_c^1}^T,
+{F_c^2}^T, \dots, {F_c^{N_p}}^T]^T\)</span>。</p>
+<p>则我们的目标即为求得约束力<span
+class="math inline">\(F_c\)</span>，使由牛顿第二定律<span
+class="math inline">\(F_c + F_e = Ma\)</span>解出的系统加速度<span
+class="math inline">\(a\)</span>能让下一时刻<span
+class="math inline">\(t&#39;\)</span>的新的系统状态<span
+class="math inline">\(q&#39;\)</span>满足约束<span
+class="math inline">\(C(q&#39;, t&#39;)=0\)</span>。</p>
+<p>下文将讨论该如何构建方程组求解约束力<span
+class="math inline">\(F_c\)</span>。</p>
+<h1 id="条件一ddotc0">条件一、<span
+class="math inline">\(\ddot{C}=0\)</span></h1>
+<p>假设系统状态<span class="math inline">\(q\)</span>在<span
+class="math inline">\(t\)</span>时刻满足约束<span
+class="math inline">\(C(q,t)=0\)</span>，
+并进一步地满足约束函数关于时间的变化量为零：<span
+class="math inline">\(\dot{C}(q,t)=\frac{\partial C}{\partial
+t}=0\)</span>。 那么只要让约束函数关于时间的二阶导为0，
+约束函数的取值就将始终为0：</p>
+<p><span class="math display">\[
+\ddot{C}(q,t) = 0
+\]</span></p>
+<p>只要<span
+class="math inline">\(F_c\)</span>满足该条件，那么系统状态就将总是向着满足约束的方向发展。</p>
+<h1 id="条件二f_c-nabla-ct-lambda">条件二、<span
+class="math inline">\(F_c = \nabla C^T \lambda\)</span></h1>
+<p>我们希望约束力是系统内力， 而在不考虑热力学因素的情况下，
+系统内力总是不做功的， 因此约束力做的系统总功应当为0。</p>
+<blockquote>
+<p>绝大多数文献中都是由达朗贝尔原理推出的约束力不做功，例如[1][2][3][4]。
+但达朗贝尔原理实际上说的是合外力与惯性力在满足约束的位移下所做的功为零，而并没有说约束力不做功。</p>
+<p>事实上，如果一个约束的约束力在满足约束的位移下做功为零的话，那么该约束被称为理想约束(ideal
+constraint)。</p>
+</blockquote>
+<p>假设系统状态<span
+class="math inline">\(q\)</span>在经过一个不消耗时间的微小位移<span
+class="math inline">\(\delta q\)</span>后依然满足约束，即<span
+class="math inline">\(C(q+\delta q, t) = 0\)</span>（通常称<span
+class="math inline">\(\delta q\)</span>为虚位移）。</p>
+<p>那么约束力在该位移下所做的功即为<span class="math inline">\(W_c = F_c
+\cdot \delta q\)</span>， 要使约束力不做功，也就是要让<span
+class="math inline">\(W_c = F_c \cdot \delta q = 0\)</span>，即<span
+class="math inline">\(F_c\)</span>垂直于<span
+class="math inline">\(\delta q\)</span>：</p>
+<p><span class="math display">\[
+F_c \perp \delta q
+\]</span></p>
+<p>如果将<span class="math inline">\(C(q)=0\)</span>看成是在<span
+class="math inline">\(R^n\)</span>空间中的一个曲面的话 （即所有满足<span
+class="math inline">\(C(q)=0\)</span>的<span
+class="math inline">\(q\)</span>都属于这个曲面，这个曲面上的所有点<span
+class="math inline">\(q\)</span>也都满足<span
+class="math inline">\(C(q)=0\)</span>）， 那么<span
+class="math inline">\(\delta q\)</span>就是该曲面上<span
+class="math inline">\(q\)</span>点处的一个切向量。</p>
+<p>由<span class="math inline">\(\delta q\)</span>的任意性可知，
+要让<span class="math inline">\(F_c\)</span>对任意<span
+class="math inline">\(\delta q\)</span>都满足<span
+class="math inline">\(F_c \perp \delta q\)</span>， 就是要让<span
+class="math inline">\(F_c\)</span>垂直于曲面<span
+class="math inline">\(C(q)=0\)</span>在<span
+class="math inline">\(q\)</span>点处的切平面， 也就是要让<span
+class="math inline">\(F_c\)</span>平行于曲面<span
+class="math inline">\(C(q)=0\)</span>在<span
+class="math inline">\(q\)</span>点处的法线：</p>
+<p><span class="math display">\[
+F_c = \nabla C^T \lambda
+\]</span></p>
+<p>其中<span class="math inline">\(\nabla C = \frac{\partial C}{\partial
+q}\)</span>为曲面法向量，<span
+class="math inline">\(\lambda\)</span>为未知的<span
+class="math inline">\(m\)</span>维列向量（通常称<span
+class="math inline">\(\lambda\)</span>为拉格朗日乘数Lagrange
+Multipler）。</p>
+<h1 id="系统方程组">系统方程组</h1>
+<p>联立条件一、条件二、运动方程（<span
+class="math inline">\(F=am\)</span>），可得系统方程组：</p>
+$$ {
+<span class="math display">\[\begin{aligned}
+
+&amp; \ddot{C} = 0 \\
+&amp; F_c = \nabla C^T \lambda \\
+&amp; F_c + F_e = Ma
+
+\end{aligned}\]</span>
+<p>. $$</p>
+<p>其中</p>
+<ul>
+<li><span class="math inline">\(\lambda, a,
+F_c\)</span>为待求变量，包含<span
+class="math inline">\(m+n+n\)</span>个未知数。</li>
+<li>条件一<span class="math inline">\(\ddot{C}=0\)</span>可提供<span
+class="math inline">\(m\)</span>个方程。</li>
+<li>条件二<span class="math inline">\(F_c = \nabla C^T
+\lambda\)</span>可提供<span
+class="math inline">\(n\)</span>个方程。</li>
+<li>运动方程<span class="math inline">\(F_c + F_e =
+Ma\)</span>可提供<span class="math inline">\(n\)</span>个方程。</li>
+</ul>
+<p>因此未知数数量等于方程数量，该方程组要么无解，要么有唯一解。</p>
+<h1 id="例子">例子</h1>
+<p><img src="example.drawio.png" /></p>
+<p>如图所示，两个小球被一根杆连接。</p>
+<p>对该系统的约束为：</p>
+<ol type="1">
+<li>A球固定在原地不动。</li>
+<li>杆子长度固定为<span class="math inline">\(\sqrt{2}\)</span>。</li>
+</ol>
+<p>假设当前状态下两小球满足约束并且当前速度为零。</p>
+<p>使用图中记号，则约束可记为：</p>
+<p><span class="math display">\[
+C(t) = \begin{bmatrix}
+    x_A \\
+    y_A \\
+    (x_B-x_A, y_B-y_A)^2-2
+\end{bmatrix}
+= \mathbb{0}
+\]</span></p>
+<p>设外力为重力（<span
+class="math inline">\(g\)</span>为重力加速度常数）：</p>
+<p><span class="math display">\[
+F_e = \begin{bmatrix}
+    0 \\
+    -g \\
+    0 \\
+    -g
+\end{bmatrix}
+\]</span></p>
+<p>设两小球质量分别为<span class="math inline">\(m_A, m_B\)</span>。</p>
+<p>代入上文中给出的系统方程组中（为了方便直观，此处重复一遍）：</p>
+$$ {
+<span class="math display">\[\begin{aligned}
+
+&amp; \ddot{C} = 0 \\
+&amp; F_c = \nabla C^T \lambda \\
+&amp; F_c + F_e = Ma
+
+\end{aligned}\]</span>
+<p>. $$</p>
+<p>该方程组比较复杂的项是<span class="math inline">\(\ddot{C}, \nabla
+C\)</span>，所以先简单列一下。 设<span class="math inline">\(q_A=[x_A,
+y_A]^T, q_B = [x_B, y_B]^T, v=\dot{q}\)</span>，可以算得：</p>
+<p><span class="math display">\[
+\ddot{C}(t) = \begin{bmatrix}
+    a_A \\
+    2(v_B-v_A)^2 + 2(q_B-q_A) \cdot (a_B - a_A)
+\end{bmatrix}
+\]</span></p>
+<p><span class="math display">\[
+\nabla C^T = \left[\begin{matrix}1 &amp; 0 &amp; 0 &amp; 0\\0 &amp; 1
+&amp; 0 &amp; 0\\2 x_{A} - 2 x_{B} &amp; 2 y_{A} - 2 y_{B} &amp; - 2
+x_{A} + 2 x_{B} &amp; - 2 y_{A} + 2 y_{B}\end{matrix}\right]
+\]</span></p>
+<p>设当前时刻的位移、速度和质量为：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    q_A = (0, 0) \\
+    q_B = (1, -1) \\
+    v_A = (0, 0) \\
+    v_B = (0, 0) \\
+    m_A = 1 \\
+    m_B = 1 \\
+\end{aligned}
+\]</span></p>
+<p>则可以求解上面的系统方程组，得到：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    \lambda = \begin{bmatrix}
+        -\frac{g}{2} \\
+        \frac{3g}{2} \\
+        -\frac{g}{4} \\
+    \end{bmatrix} \\
+    F_c = \begin{bmatrix}
+        0 \\
+        g \\
+        -\frac{g}{2} \\
+        \frac{g}{2} \\
+    \end{bmatrix} \\
+    a = \begin{bmatrix}
+        0 \\
+        0 \\
+        -\frac{g}{2} \\
+        -\frac{g}{2} \\
+    \end{bmatrix}
+\end{aligned}
+\]</span></p>
+<p>A的加速度为0，保持原地不动。 B的加速度向左下角。 结果正确。</p>
+<p>这是计算用的代码（<span
+class="math inline">\(\ddot{C}\)</span>是我手算的）：<a
+href="https://colab.research.google.com/drive/1JvgwRQrSH8tJ2ONWzlaroH7KvxSAH01o?usp=sharing">colab</a>。
+（我非常推荐使用sympy来进行符号运算）</p>
+<h1 id="一些本文没有讨论的">一些本文没有讨论的</h1>
+<p>理论上来说保持<span
+class="math inline">\(\ddot{C}=0\)</span>就能保证<span
+class="math inline">\(C=0, \forall t\)</span>，
+但实际上在数值积分过程中总是会出现<span class="math inline">\(C\neq
+0\)</span>的情况。 因此需要加一些修正项来维持<span
+class="math inline">\(C=0\)</span>，请参考[2]或者[3]。</p>
+<h1 id="参考文献">参考文献</h1>
+<ol type="1">
+<li>Witkin, A., Gleicher, M. &amp; Welch, W. Interactive dynamics. in
+Proceedings of the 1990 symposium on Interactive 3D graphics 11–21
+(Association for Computing Machinery, 1990).
+doi:10.1145/91385.91400.</li>
+<li>Andrew, W. &amp; David, B. Physically Based Modeling.
+https://www.cs.cmu.edu/~baraff/sigcourse/ (1997).</li>
+<li>Daniel, C. Constraints Derivation for Rigid Body Simulation in 3D -
+Real-Time Physics Simulation Forum.
+https://pybullet.org/Bullet/phpBB3/viewtopic.php?t=9541 (2013).</li>
+<li>Bender, J., Erleben, K. &amp; Trinkle, J. Interactive Simulation of
+Rigid Body Dynamics in Computer Graphics. Computer Graphics Forum 33,
+246–270 (2014).</li>
+<li>Mirtich, B. &amp; Canny, J. Impulse-based simulation of rigid
+bodies. in Proceedings of the 1995 symposium on Interactive 3D graphics
+181-ff. (Association for Computing Machinery, 1995).
+doi:10.1145/199404.199436.</li>
+</ol>
+</body>
+</html>

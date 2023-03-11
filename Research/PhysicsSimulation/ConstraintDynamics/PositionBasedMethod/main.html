@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>测试用博客</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="https://gist.githubusercontent.com/supplient/1726b3acbfed278f54b66cf11129a43b/raw/62b874d98f72005d18b9b2a05d3be6815959b51b/gh-pandoc.css" />
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+  <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]-->
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">测试用博客</h1>
+</header>
+<p>本文将讨论使用 <strong>基于位置的方法(Position Based Method)</strong>
+对受约束的粒子系统进行物理仿真的过程。</p>
+<p>（Position Based Method这名字是我自己起的，与impulse based
+method相对。 因为本文内容相当于是Position Based
+Dynamics(PBD)的一个子集， 仅关注在受束系统下系统方程组的建立上，
+因此为了避免让读者误以为这就是PBD的全部了， 我就另外起了一个名字。）</p>
+<p>（笔者曾写过另一篇<a
+href="https://zhuanlan.zhihu.com/p/339879519">PBD的阅读笔记</a>，
+因所站视点不同，故另开此文。）</p>
+<h1 id="记号与问题描述">记号与问题描述</h1>
+<p>系统描述：</p>
+<ul>
+<li>系统为粒子系统</li>
+<li>系统状态为位置坐标，记为<span class="math inline">\(q\in
+R^n\)</span></li>
+<li>系统速度记为<span class="math inline">\(v\)</span></li>
+<li>系统加速度记为<span class="math inline">\(a\)</span></li>
+<li>下一时刻的系统状态/速度用上标<span
+class="math inline">\(&#39;\)</span>来表示：<span
+class="math inline">\(q&#39;, v&#39;\)</span></li>
+<li>质量矩阵<span class="math inline">\(M = \text{diag}(\mathbf{m}_1,
+\mathbf{m}_2, \dots) \in R^{n \times n}\)</span>，其中<span
+class="math inline">\(\mathbf{m}_i = [m_i, m_i, \dots]^T\)</span>，<span
+class="math inline">\(\mathbf{m}_i\)</span>的维数为第<span
+class="math inline">\(i\)</span>个粒子的自由度，<span
+class="math inline">\(m_i\)</span>为第<span
+class="math inline">\(i\)</span>个粒子的质量</li>
+<li>约束记为<span class="math inline">\(C(q)=0\)</span>，约束函数<span
+class="math inline">\(C: R^n \Rightarrow R^m\)</span></li>
+<li>外力为<span class="math inline">\(F_E\)</span></li>
+<li>约束力为<span class="math inline">\(F_C\)</span></li>
+</ul>
+<p>记号说明：</p>
+<ul>
+<li>本文中所有向量均为列向量</li>
+<li>本文仅在容易引起混淆的地方对矢量值采用粗体</li>
+<li><span class="math inline">\(\mathbf{1}=[1, 1, \dots]^T\)</span></li>
+<li>本文中雅克比矩阵的运算采用与<a
+href="https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant">wiki</a>中一致的运算规则，即：<span
+class="math inline">\(J_{ij} = \frac{\partial f_i}{\partial
+x_j}\)</span></li>
+</ul>
+<p>待求项为下一时刻的系统状态和系统速度<span
+class="math inline">\(q&#39;, v&#39;\)</span>， 要求其满足约束<span
+class="math inline">\(C(q&#39;)=0\)</span>。</p>
+<h1 id="数值积分">数值积分</h1>
+<p>应用半隐式欧拉法(semi-implicit Euler)来计算<span
+class="math inline">\(q&#39;=q+\int v\mathrm{d}t, v&#39;=v+\int
+a\mathrm{d} t\)</span>的数值积分：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    q&#39; = q + \Delta t v&#39;\\
+    v&#39; = v + \Delta t a
+\end{aligned}
+\right.
+\]</span></p>
+<p>其中加速度<span class="math inline">\(a=M^{-1}(F_E+F_C)\)</span>，
+因为约束力<span class="math inline">\(F_C\)</span>未知， 所以<span
+class="math inline">\(a\)</span>也未知。</p>
+<p>因此该方程组中未知变量为<span class="math inline">\(q&#39;, v&#39;,
+a\)</span>， 未知数一共有<span class="math inline">\(3n\)</span>个，
+而方程数量仅有<span class="math inline">\(2n\)</span>个，
+因此该方程组为欠定方程组，无法求出唯一解。
+我们需要寻找更多方程来进行求解。</p>
+<h1 id="条件一cq0">条件一、<span
+class="math inline">\(C(q&#39;)=0\)</span></h1>
+<p>我们当然希望下一时步的系统状态<span
+class="math inline">\(q&#39;\)</span>能够满足约束：</p>
+<p><span class="math display">\[
+C(q&#39;)=\mathbf{0}
+\]</span></p>
+<p>但该方程组也只能提供<span class="math inline">\(m\)</span>个方程，
+若<span class="math inline">\(m&lt;n\)</span>，则还差<span
+class="math inline">\(n-m\)</span>个方程。</p>
+<h1 id="条件二内力作用下动量守恒">条件二、内力作用下动量守恒</h1>
+<p>由动量守恒定律可知， 如果约束力<span
+class="math inline">\(F_C\)</span>为系统内力，
+那么在它的作用下系统动量应当保持不变。</p>
+<p>我们先将由约束力<span
+class="math inline">\(F_C\)</span>引起的动量变化量给抽离出来， 展开<span
+class="math inline">\(q&#39;\)</span>：</p>
+<p><span class="math display">\[
+\begin{aligned}
+q&#39;
+= &amp; q+\Delta tv&#39; \\
+= &amp; q+\Delta t(v+\Delta t a) \\
+= &amp; q + \Delta t v + \Delta t^2 M^{-1} F_E + \Delta t^2 M^{-1} F_C
+\end{aligned}
+\]</span></p>
+<p>记</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    a^* &amp;:= M^{-1} F_E \\
+    v^* &amp;:= v + \Delta t a^* \\
+    q^* &amp;:= q + \Delta t v^*
+\end{aligned}
+\right.
+\]</span></p>
+<p><span class="math display">\[
+\Delta q = \Delta t^2 M^{-1} F_C
+\]</span></p>
+<p>于是<span class="math inline">\(q&#39;\)</span>可重写为：</p>
+<p><span class="math display">\[
+q&#39; = q^* + \Delta q
+\]</span></p>
+<p>其中<span class="math inline">\(\Delta q\)</span>为在约束力<span
+class="math inline">\(F_C\)</span>的作用下系统状态的变化量。</p>
+<p>我们希望在内力约束力<span
+class="math inline">\(F_C\)</span>的作用下系统动量保持不变， 即：</p>
+<p><span class="math display">\[
+\begin{aligned}
+p|_{q^*} &amp;= p|_{q&#39;} \\
+\Rightarrow \Delta p :=&amp; p|_{q&#39;} - p|_{q^*} \\
+=&amp; Mq&#39;\cdot \mathbf{1} - M q^* \cdot \mathbf{1} \\
+=&amp; M(q&#39;-q^*) \cdot \mathbf{1} \\
+=&amp; M\Delta q \cdot \mathbf{1} = 0 \\
+\end{aligned}
+\]</span></p>
+<p>为了进一步推导， 此处我们需要先对约束<span
+class="math inline">\(C(q)=0\)</span>做一个假设：</p>
+<blockquote>
+<p>若约束<span class="math inline">\(C(q)=0\)</span>的约束力<span
+class="math inline">\(F_C\)</span>为系统内力， 则约束函数<span
+class="math inline">\(C\)</span>应满足：</p>
+<p><span class="math display">\[
+\forall q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} =
+\mathbf{0}
+\]</span></p>
+<p>其中 <span class="math inline">\(\nabla C = \frac{\partial
+C}{\partial q}\)</span>.</p>
+</blockquote>
+<p>例如，约束<span class="math inline">\(C([x_1,
+x_2]^T)=x_1-x_2-1=0\)</span>总是满足该假设：</p>
+$$
+<span class="math display">\[\begin{aligned}
+&amp; \nabla C^T \lambda \cdot \mathbf{1} \\
+
+= &amp; \begin{bmatrix}
+    1 \\
+    -1
+\end{bmatrix} \lambda \cdot \begin{bmatrix}
+    1 \\
+    1
+\end{bmatrix} \\
+
+= &amp; \begin{bmatrix}
+    \lambda \\
+    -\lambda
+\end{bmatrix} \cdot  \begin{bmatrix}
+    1 \\
+    1
+\end{bmatrix} \\
+
+= &amp; \lambda -\lambda = 0
+
+\end{aligned}\]</span>
+<p>$$</p>
+<p>为了让系统动量在内力作用下保持不变<span class="math inline">\(\Delta
+p= M\Delta q \cdot \mathbf{1} = 0\)</span>， 我们设</p>
+<p><span class="math display">\[
+\Delta q = M^{-1} \nabla C^T \lambda
+\]</span></p>
+<p>则内力作用下的系统动量变化量<span class="math inline">\(\Delta
+p\)</span>为：</p>
+<p><span class="math display">\[
+\begin{aligned}
+\Delta p
+=&amp; M\Delta q \cdot \mathbf{1} \\
+=&amp; MM^{-1} \nabla C^T \lambda \cdot \mathbf{1} \\
+=&amp; \nabla C^T \lambda \cdot \mathbf{1} \\
+\text{[假设 } &amp;\forall q \forall \lambda: \nabla C^T \lambda \cdot
+\mathbf{1} = \mathbf{0} \text{]} \\
+=&amp; \mathbf{0} \\
+\end{aligned}
+\]</span></p>
+<p>因此当<span class="math inline">\(\Delta q = M^{-1} \nabla C^T
+\lambda\)</span>时， 若约束函数<span
+class="math inline">\(C\)</span>满足<span class="math inline">\(\forall
+q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} =
+\mathbf{0}\)</span>， 则在该约束对应的约束力<span
+class="math inline">\(F_C\)</span>作用下， 系统动量保持不变<span
+class="math inline">\(\Delta p = 0\)</span>。</p>
+<p>进一步地， 当<span class="math inline">\(\Delta q = M^{-1} \nabla C^T
+\lambda\)</span>时， 若所有约束力为系统内力的约束函数<span
+class="math inline">\(C\)</span>都满足 <span
+class="math inline">\(\forall q \forall \lambda: \nabla C^T \lambda
+\cdot \mathbf{1} = \mathbf{0}\)</span>， 则动量守恒定律被满足。</p>
+<h1 id="系统方程组">系统方程组</h1>
+<p>列出至今为止我们的所有方程——</p>
+<p>半隐式欧拉法：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    q&#39; = q + \Delta t v&#39;\\
+    v&#39; = v + \Delta t a
+\end{aligned}
+\right.
+\]</span></p>
+<p><span class="math display">\[
+a=M^{-1}(F_E+F_C)
+\]</span></p>
+<p>条件一：</p>
+<p><span class="math display">\[
+C(q&#39;)=\mathbf{0}
+\]</span></p>
+<p>重写<span class="math inline">\(q&#39;\)</span>：</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    a^* &amp;:= M^{-1} F_E \\
+    v^* &amp;:= v + \Delta t a^* \\
+    q^* &amp;:= q + \Delta t v^*
+\end{aligned}
+\right.
+\]</span></p>
+<p><span class="math display">\[
+\Delta q = \Delta t^2 M^{-1} F_C
+\]</span></p>
+<p><span class="math display">\[
+q&#39; = q^* + \Delta q
+\]</span></p>
+<p>条件二：</p>
+<p><span class="math display">\[
+\Delta q = M^{-1} \nabla C^T \lambda
+\]</span></p>
+<p>联立它们，经化简可以得到一个关于<span
+class="math inline">\(\lambda\)</span>的系统方程组：</p>
+<p><span class="math display">\[
+C(q^* + M^{-1}\nabla C^T \lambda) = 0
+\]</span></p>
+<p><span class="math inline">\(\lambda\)</span>为<span
+class="math inline">\(m\)</span>维向量，该方程组也提供了<span
+class="math inline">\(m\)</span>个方程，
+因此当该方程组为线性方程组且各方程之间线性无关时，
+则总是要么有唯一解，要么无解。</p>
+<p>解出<span class="math inline">\(\lambda\)</span>后，</p>
+<ol type="1">
+<li>由<span class="math inline">\(\Delta q=M^{-1}\nabla C^T
+\lambda,\quad q&#39;=q+\Delta q\)</span>可以算出下一时步的系统状态<span
+class="math inline">\(q&#39;\)</span>。</li>
+<li>再由<span class="math inline">\(q&#39;=q+\Delta t
+v&#39;\)</span>可以算出下一时步的系统速度<span
+class="math inline">\(v&#39;\)</span>。</li>
+</ol>
+<p>（实际求解时，通常会线性化约束函数<span
+class="math inline">\(C\)</span>来简化计算。 PBD里还会采用Gauss–Seidel
+method来近似求解线性方程组。
+不过本文的重点在建立方程组而非求解方程组，因此不做讨论。）</p>
+<h1 id="例子">例子</h1>
+<p><img src="example.drawio.png" /></p>
+<p>如图所示，两个小球被一根杆连接。</p>
+<p>对该系统的约束为：</p>
+<ol type="1">
+<li>A球固定在原地不动。</li>
+<li>杆子长度固定为<span class="math inline">\(\sqrt{2}\)</span>。</li>
+</ol>
+<p>使用图中记号，则约束可记为：</p>
+<p><span class="math display">\[
+C(t) = \begin{bmatrix}
+    x_A \\
+    y_A \\
+    (x_B-x_A, y_B-y_A)^2-2
+\end{bmatrix}
+= \mathbb{0}
+\]</span></p>
+<p>约束函数<span class="math inline">\(C\)</span>关于<span
+class="math inline">\(q\)</span>的梯度为：</p>
+<p><span class="math display">\[
+\nabla C = \left[\begin{matrix}1 &amp; 0 &amp; 0 &amp; 0\\0 &amp; 1
+&amp; 0 &amp; 0\\2 x_{A} - 2 x_{B} &amp; 2 y_{A} - 2 y_{B} &amp; - 2
+x_{A} + 2 x_{B} &amp; - 2 y_{A} + 2 y_{B}\end{matrix}\right]
+\]</span></p>
+<p>设外力为重力（<span
+class="math inline">\(g\)</span>为重力加速度常数）：</p>
+<p><span class="math display">\[
+F_E = \begin{bmatrix}
+    0 \\
+    -g \\
+    0 \\
+    -g
+\end{bmatrix}
+\]</span></p>
+<p>设两小球质量分别为<span class="math inline">\(m_A, m_B\)</span>。</p>
+<p>记<span class="math inline">\(v=[v_A^1, v_A^2, v_B^1,
+v_B^2]^T\)</span>为当前的系统速度。</p>
+<p>由</p>
+<p><span class="math display">\[
+\left\{
+\begin{aligned}
+    a^* &amp;:= M^{-1} F_E \\
+    v^* &amp;:= v + \Delta t a^* \\
+    q^* &amp;:= q + \Delta t v^*
+\end{aligned}
+\right.
+\]</span></p>
+<p>可算得<span class="math inline">\(q^*\)</span>：</p>
+<p><span class="math display">\[
+q^* = \left[\begin{matrix}\Delta t v^{1}_{A} + x_{A}\\\Delta t \left(-
+\frac{\Delta t g}{m_{A}} + v^{2}_{A}\right) + y_{A}\\\Delta t v^{1}_{B}
++ x_{B}\\\Delta t \left(- \frac{\Delta t g}{m_{B}} + v^{2}_{B}\right) +
+y_{B}\end{matrix}\right]
+\]</span></p>
+<p>将<span class="math inline">\(\nabla C\)</span>与<span
+class="math inline">\(q^*\)</span>代入系统方程组：</p>
+<p><span class="math display">\[
+C(q^* + M^{-1}\nabla C^T \lambda) = 0
+\]</span></p>
+<p>并取已知值为：</p>
+<p><span class="math display">\[
+\begin{aligned}
+    q_A = (0, 0) \\
+    q_B = (1, -1) \\
+    v_A = (0, 0) \\
+    v_B = (0, 0) \\
+    m_A = 1 \\
+    m_B = 1 \\
+\end{aligned}
+\]</span></p>
+<p>则可由系统方程组解得<span
+class="math inline">\(\lambda\)</span>：</p>
+<p><span class="math display">\[
+\lambda =
+\left[\begin{matrix}- \frac{\Delta t^{2} g}{2} + \frac{\sqrt{- \Delta
+t^{4} g^{2} + 4}}{2} - 1\\\frac{3 \Delta t^{2} g}{2} - \frac{\sqrt{-
+\Delta t^{4} g^{2} + 4}}{2} + 1\\- \frac{\Delta t^{2} g}{4} +
+\frac{\sqrt{- \left(\Delta t^{2} g - 2\right) \left(\Delta t^{2} g +
+2\right)}}{4} - \frac{1}{2}\end{matrix}\right]
+\]</span></p>
+<p>代入<span class="math inline">\(q&#39; = q^* + M^{-1}\nabla C^T
+\lambda\)</span>， 可算得:</p>
+<p><span class="math display">\[
+q&#39; = \left[\begin{matrix}0\\0\\- \frac{\Delta t^{2} g}{2} +
+\frac{\sqrt{- \Delta t^{4} g^{2} + 4}}{2}\\- \frac{\Delta t^{2} g}{2} -
+\frac{\sqrt{- \Delta t^{4} g^{2} + 4}}{2}\end{matrix}\right]
+\]</span></p>
+<p>若<span class="math inline">\(\Delta t = 0.001,
+g=10\)</span>，则：</p>
+<p><span class="math display">\[
+q&#39; =
+\left[\begin{matrix}0\\0\\0.9999949999875\\-1.0000049999875\end{matrix}\right]
+\]</span></p>
+<p>也就是A球保持不动，B球向左下角移动，与预期相符。</p>
+<blockquote>
+<p>读者可能会发现在求解系统方程组<span
+class="math inline">\(C(q^*+M^{-1}\nabla C \lambda)=0\)</span>的过程中，
+由于<span class="math inline">\(C\)</span>非线性，所以会得到两个解。
+而另一个解的<span class="math inline">\(\lambda\)</span>为：</p>
+<p><span class="math display">\[
+\lambda = \left[\begin{matrix}- \frac{\Delta t^{2} g}{2} - \frac{\sqrt{-
+\Delta t^{4} g^{2} + 4}}{2} - 1\\\frac{3 \Delta t^{2} g}{2} +
+\frac{\sqrt{- \Delta t^{4} g^{2} + 4}}{2} + 1\\- \frac{\Delta t^{2}
+g}{4} - \frac{\sqrt{- \left(\Delta t^{2} g - 2\right) \left(\Delta t^{2}
+g + 2\right)}}{4} - \frac{1}{2}\end{matrix}\right]
+\]</span></p>
+<p>由它可算得 <span class="math inline">\(q&#39;\)</span>:</p>
+<p><span class="math display">\[
+q&#39; =
+\left[\begin{matrix}0\\0\\-1.0000049999875\\0.9999949999875\end{matrix}\right]
+\]</span></p>
+<p>该解对应的是一个镜像情况， 该情况也满足约束<span
+class="math inline">\(C(q&#39;)=0\)</span>， 此时B球沿直线<span
+class="math inline">\(y=x\)</span>翻转到了左上角，
+显然该解是应当被舍弃的。
+（可能有某种方法能够用来判定哪个解应当被舍弃？么，不过反正一般都会线性化<span
+class="math inline">\(C(q&#39;)=0\)</span>的，所以可能不是大问题。）</p>
+</blockquote>
+<p>计算用的代码：<a
+href="https://colab.research.google.com/drive/1bS35qZcegSK24-KgLQh4PmgnohC2vfch?usp=sharing">colab</a>
+（我非常推荐使用sympy进行符号计算）</p>
+<h1 id="参考文献">参考文献</h1>
+<p>我在文中并没有引用任何一篇参考文献（因为我懒），
+不过我依然想把催生了这篇文章的文献列于此处， 以供感兴趣的读者参考。</p>
+<ol type="1">
+<li>Müller, M., Heidelberger, B., Hennix, M. &amp; Ratcliff, J. Position
+based dynamics. Journal of Visual Communication and Image Representation
+18, 109–118 (2007).</li>
+<li>Macklin, M., Müller, M. &amp; Chentanez, N. XPBD: position-based
+simulation of compliant constrained dynamics. in Proceedings of the 9th
+International Conference on Motion in Games 49–54 (Association for
+Computing Machinery, 2016). doi:10.1145/2994258.2994272.</li>
+<li>Bender, J., Müller, M. &amp; Macklin, M. Position-Based Simulation
+Methods in Computer Graphics. (2015) doi:10.2312/egt.20151045.</li>
+<li>Bender, J., Erleben, K. &amp; Trinkle, J. Interactive Simulation of
+Rigid Body Dynamics in Computer Graphics. Computer Graphics Forum 33,
+246–270 (2014).</li>
+</ol>
+</body>
+</html>

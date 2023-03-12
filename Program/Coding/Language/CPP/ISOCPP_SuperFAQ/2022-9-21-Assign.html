@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/assignment-operators">https://isocpp.org/wiki/faq/assignment-operators</a></p>
+<p>Self-assignment problem:</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> {};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">T</span>
+{
+<span class="hljs-keyword">private</span>:
+    A* p;
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-built_in">T</span>() 
+    {
+        p = <span class="hljs-keyword">new</span> <span class="hljs-built_in">A</span>();
+    }
+
+    T* <span class="hljs-keyword">operator</span>=(<span class="hljs-type">const</span> T&amp; t) 
+    {
+        <span class="hljs-keyword">delete</span> p;
+        p = <span class="hljs-keyword">new</span> A{*(t.p)}; <span class="hljs-comment">// !!! t.p is deleted if this == &amp;t !!!</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+    }
+};
+
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">assign</span><span class="hljs-params">(T&amp; a, T&amp; b)</span> </span>{
+    a = b;
+}
+ 
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+    T t;
+    <span class="hljs-built_in">assign</span>(t, t);
+}
+</code></pre>
+<p>这一问题极少出现，但一旦出现就极难调试，因此应尽量避免写出这类代码。
+性能要求不高的话，直接：</p>
+<pre><code class="language-c++">    T* <span class="hljs-keyword">operator</span>=(<span class="hljs-type">const</span> T&amp; t) 
+    {
+		<span class="hljs-comment">// Handle self-assign</span>
+		<span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span> == &amp;t)
+			<span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+        <span class="hljs-keyword">delete</span> p;
+        p = <span class="hljs-keyword">new</span> A{*(t.p)}; <span class="hljs-comment">// !!! t.p is deleted if this == &amp;t !!!</span>
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>;
+    }
+</code></pre>
+
+        
+        
+    </body>
+    </html>

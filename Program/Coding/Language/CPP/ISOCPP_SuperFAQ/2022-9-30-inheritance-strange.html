@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Protected Virtuals</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/strange-inheritance#protected-virtuals">https://isocpp.org/wiki/faq/strange-inheritance#protected-virtuals</a></p>
+<ul>
+<li>public virtual是对外的接口，向使用这套类的代码提供统一的约定。</li>
+<li>protected virtual是对内的接口，向这套类的内部实现提供统一的约定。</li>
+</ul>
+<h4 id="protected-virtuals">Protected Virtuals</h4>
+<p><em>Public Overloaded Non-Vrituals Call Protected Non-Overloaded Viftuals</em> idiom:</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">Base</span> {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-type">int</span> x)</span>    </span>{ <span class="hljs-built_in">f_int</span>(x); }  <span class="hljs-comment">// Non-virtual</span>
+  <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-type">double</span> x)</span> </span>{ <span class="hljs-built_in">f_dbl</span>(x); }  <span class="hljs-comment">// Non-virtual</span>
+<span class="hljs-keyword">protected</span>:
+  <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">f_int</span><span class="hljs-params">(<span class="hljs-type">int</span>)</span></span>;
+  <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">f_dbl</span><span class="hljs-params">(<span class="hljs-type">double</span>)</span></span>;
+};
+</code></pre>
+<p>如果这套类（基类+继承类）对外的接口都一模一样，只是实现不同而已的话，
+那可以把所有接口都放在基类里，做成non-virtual的，
+从而确保所有继承类都不需要关心对外接口的设计问题。
+继承类只需要关注内部的virtual protected方法实现即可。</p>
+<h4 id="private-virtuals">Private Virtuals</h4>
+<p><em>Template Method</em> pattern:</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">MyBaseClass</span> {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">myOp</span><span class="hljs-params">()</span></span>;
+<span class="hljs-keyword">private</span>:
+  <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">myOp_step1</span><span class="hljs-params">()</span> </span>= <span class="hljs-number">0</span>;
+  <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">myOp_step2</span><span class="hljs-params">()</span></span>;
+};
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">MyBaseClass::myOp</span><span class="hljs-params">()</span>
+</span>{
+  <span class="hljs-comment">// Pre-processing...</span>
+  <span class="hljs-built_in">myOp_step1</span>();  <span class="hljs-comment">// call into the future - call the derived class</span>
+  <span class="hljs-built_in">myOp_step2</span>();  <span class="hljs-comment">// optionally the future - this one isn&#x27;t pure virtual</span>
+  <span class="hljs-comment">// Post-processing...</span>
+}
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">MyBaseClass::myOp_step2</span><span class="hljs-params">()</span>
+</span>{
+  <span class="hljs-comment">// this is &quot;default&quot; code - it can optionally be customized by a derived class</span>
+}
+</code></pre>
+<p>private virtual和protected virtual其实差不多，它们都是对内的接口。
+不过private virtual的话范围更小，是只对“基类”的接口。
+通常来说我们更倾向于protected virtual，因为设计基类的时候很难确定继承类是否会调用这些接口。</p>
+<p>基类构造函数内调用virtual methods的话，并不会调用继承类override的方法，而只会调用基类方法。
+这是因为执行基类构造函数时，只有基类对象被构建了，而继承类对象还没有被构建，如果此时调用继承类方法，而该方法里使用了继承类对象的成员对象的话，那这就是个未定义行为。
+因此在基类构造函数里调用继承类方法是非常危险的，故而直接从实现上禁止了这一行为。</p>
+<p>在基类析构函数里调用virtual methods时也一样，此时继承类的析构函数已经被执行过了，所以在基类析构函数里this指针指向的对象仅仅只是基类对象，而不可能是继承类对象，因此只会调用基类方法。</p>
+<p>重载(overload)仅发生在同一个scope中，哪怕是继承也不可以跨scope重载：</p>
+<pre><code class="language-c++"><span class="hljs-meta">#<span class="hljs-keyword">include</span><span class="hljs-string">&lt;iostream&gt;</span></span>
+<span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> std;
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span> {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-type">int</span> i)</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;f(int): &quot;</span>; <span class="hljs-keyword">return</span> i+<span class="hljs-number">1</span>; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">D</span> : <span class="hljs-keyword">public</span> B {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-function"><span class="hljs-type">double</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-type">double</span> d)</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;f(double): &quot;</span>; <span class="hljs-keyword">return</span> d+<span class="hljs-number">1.3</span>; }
+};
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+  D* pd = <span class="hljs-keyword">new</span> D;
+  cout &lt;&lt; pd-&gt;<span class="hljs-built_in">f</span>(<span class="hljs-number">2</span>) &lt;&lt; <span class="hljs-string">&#x27;\n&#x27;</span>;
+  cout &lt;&lt; pd-&gt;<span class="hljs-built_in">f</span>(<span class="hljs-number">2.3</span>) &lt;&lt; <span class="hljs-string">&#x27;\n&#x27;</span>;
+  <span class="hljs-keyword">delete</span> pd;
+}
+
+<span class="hljs-comment">/* Output
+f(double): 3.3
+f(double): 3.6
+*/</span>
+</code></pre>
+<p>上面代码中f没有被重载，而是被隐藏了。编译器看到<code>f(2)</code>的时候，只检查了class D的scope，然后在里面只找到了<code>double f(double)</code>，因此把<code>2</code>隐式转换成了<code>2.0</code>。
+解决方案是使用<code>using</code>把<code>B::f</code>引入class D的scope中：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">D</span> : <span class="hljs-keyword">public</span> B {
+<span class="hljs-keyword">public</span>:
+  <span class="hljs-keyword">using</span> B::f; <span class="hljs-comment">// Matter</span>
+  <span class="hljs-function"><span class="hljs-type">double</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-type">double</span> d)</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;f(double): &quot;</span>; <span class="hljs-keyword">return</span> d+<span class="hljs-number">1.3</span>; }
+};
+
+<span class="hljs-comment">/* Output
+f(int): 3
+f(double): 3.6
+*/</span>
+</code></pre>
+<p>许多编译器会把虚表和第一个非内联的虚函数放在同一个编译单元里，所以如果<em>第一个非内联的虚函数</em>未定义的话，那虚表也会变得未定义。
+然后因为虚表是先于虚函数被查找的，所以报的错会是<code>virtual table is undefined</code>，而不是<code>method is undefined</code>。</p>
+
+        
+        
+    </body>
+    </html>

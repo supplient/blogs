@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/dtors">https://isocpp.org/wiki/faq/dtors</a></p>
+<p>析构顺序与构造顺序总是相反的。</p>
+<p>析构函数不可重载，它总是以<code>T::~T()</code>的形式出现，不接受任何参数。</p>
+<ul>
+<li>new: 分配内存 -&gt; 调用构造函数
+<ul>
+<li>有点像python里的<code>__new__</code> -&gt; <code>__init__</code></li>
+</ul>
+</li>
+<li>delete: 调用析构函数 -&gt; 回收内存</li>
+<li>placement new: 仅调用构造函数</li>
+<li>局部变量/全局变量结束其生命周期时：调用析构函数 -&gt; 回收内存
+<ul>
+<li>注意：形如<code>T*</code>的指针变量在结束生命周期时并不会对其指向的对象调用析构，也不会回收其内存，只是这个指针变量本身的内存会被回收而已。</li>
+</ul>
+</li>
+</ul>
+<p><code>operator new</code>本身也可以被重载（<a href="https://www.geeksforgeeks.org/overloading-new-delete-operator-c/">参考资料</a>）：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">T</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-built_in">T</span>() 
+    {
+        cout &lt;&lt; <span class="hljs-string">&quot;Constructing...&quot;</span> &lt;&lt; endl;
+    }
+
+    <span class="hljs-function"><span class="hljs-type">void</span>* <span class="hljs-keyword">operator</span> <span class="hljs-title">new</span><span class="hljs-params">(<span class="hljs-type">size_t</span> size)</span>
+    </span>{
+        cout&lt;&lt; <span class="hljs-string">&quot;Overloading new operator with size: &quot;</span> &lt;&lt; size &lt;&lt; endl;
+        <span class="hljs-keyword">return</span> ::<span class="hljs-keyword">operator</span> <span class="hljs-built_in">new</span>(size);
+    }
+
+	<span class="hljs-function"><span class="hljs-type">void</span>* <span class="hljs-keyword">operator</span> <span class="hljs-title">new</span><span class="hljs-params">(<span class="hljs-type">size_t</span> size, <span class="hljs-type">char</span> c)</span>
+	</span>{
+		cout &lt;&lt; <span class="hljs-string">&quot;Get char: &quot;</span> &lt;&lt; c &lt;&lt; endl;
+		<span class="hljs-keyword">return</span> T::<span class="hljs-keyword">operator</span> <span class="hljs-built_in">new</span>(size);
+		<span class="hljs-comment">// Note: if write</span>
+        <span class="hljs-comment">// 		return new T();</span>
+		<span class="hljs-comment">// the constructor will be called twice.</span>
+	}
+ 
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-keyword">operator</span> <span class="hljs-title">delete</span><span class="hljs-params">(<span class="hljs-type">void</span> * p)</span>
+    </span>{
+        cout&lt;&lt; <span class="hljs-string">&quot;Overloading delete operator &quot;</span> &lt;&lt; endl;
+        <span class="hljs-built_in">free</span>(p);
+    }
+};
+ 
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+    T* p = <span class="hljs-keyword">new</span> <span class="hljs-built_in">T</span>();
+    <span class="hljs-keyword">delete</span> p;
+    cout &lt;&lt; endl;
+
+	p = <span class="hljs-built_in">new</span>(<span class="hljs-string">&#x27;c&#x27;</span>) <span class="hljs-built_in">T</span>();
+	<span class="hljs-keyword">delete</span> p;
+    cout &lt;&lt; endl;
+}
+
+<span class="hljs-comment">/* Output：
+Overloading new operator with size: 1
+Constructing...
+Overloading delete operator 
+
+Get char: c
+Overloading new operator with size: 1
+Constructing...
+Overloading delete operator
+*/</span>
+</code></pre>
+<p>要注意的是<code>operator new</code>和<code>operator delete</code>负责的只是内存的分配/回收那一部分，并不是把整个<code>new, delete</code>都给重载了。
+<strong>也就是说，如果在operator new里调用了构造函数的话，那就会导致构造函数被调用两次。</strong></p>
+<p><strong>不要在析构函数中抛出异常</strong>。</p>
+<ul>
+<li>规则1：在处理一个异常时如果又抛出了一个异常的话，那程序会被立即终止。</li>
+<li>规则2：处理一个异常的过程总是从它被<code>throw</code>的地方一直stack unwinding到它被<code>catch</code>的地方。
+<ul>
+<li>stack unwinding：弹出途径的所有栈帧，并对栈帧中的所有局部变量调用其析构函数。</li>
+</ul>
+</li>
+<li>综合规则1和2，如果在处理一个异常时，stack unwinding的过程中有某个局部变量的析构函数又抛出了异常的话，那程序会被立即终止。</li>
+</ul>
+
+        
+        
+    </body>
+    </html>

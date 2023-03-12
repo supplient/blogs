@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/virtual-functions">https://isocpp.org/wiki/faq/virtual-functions</a></p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> 
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;A&quot;</span> &lt;&lt; endl; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>: <span class="hljs-keyword">public</span> A
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;B&quot;</span> &lt;&lt; endl; }
+};
+
+B b{};
+b.A::<span class="hljs-built_in">f</span>(); <span class="hljs-comment">// OK, print &quot;A&quot;</span>
+
+B* pb = <span class="hljs-keyword">new</span> B{};
+pb-&gt;A::<span class="hljs-built_in">f</span>(); <span class="hljs-comment">// OK, print &quot;A&quot;</span>
+</code></pre>
+<p>若基类函数为virtual，则继承类函数也自动为virtual，不管有没有显式声明：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">()</span> </span>{}
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">()</span> </span>{} <span class="hljs-comment">// auto virtual</span>
+};
+</code></pre>
+<p>Q：什么时候应该让析构函数是virtual的？
+A：当继承类对象可能被用基类指针delete的时候。
+这本质是因为继承类总是会重载基类的析构函数，基类和继承类的析构函数总是做不同的工作：基类的析构函数释放基类那部分对象；继承类的析构函数先释放继承类那部分对象，再调用基类的析构函数来释放基类那部分对象。
+那如果同一个函数在继承类中被重载了，但它却不是虚函数的话，那通过基类指针调用该函数的时候就不会去调用继承类中的实现了。
+这就导致继承类的析构函数没有被调用 -&gt; 继承类的那部分对象没有被释放。</p>
+<p>析构函数是特别的，它其实是所有类都有的一个“同名函数”：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span> 
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-keyword">virtual</span> ~<span class="hljs-built_in">A</span>() { cout &lt;&lt; <span class="hljs-string">&quot;A&quot;</span> &lt;&lt; endl; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>: <span class="hljs-keyword">public</span> A
+{
+<span class="hljs-keyword">public</span>:
+    ~<span class="hljs-built_in">B</span>() { cout &lt;&lt; <span class="hljs-string">&quot;B&quot;</span> &lt;&lt; endl; }
+};
+
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+    A* a = <span class="hljs-keyword">new</span> B{};
+    a-&gt;~<span class="hljs-built_in">A</span>();
+    cout &lt;&lt; <span class="hljs-string">&quot;end&quot;</span> &lt;&lt; endl;
+
+    <span class="hljs-comment">// Output:</span>
+    <span class="hljs-comment">// B</span>
+    <span class="hljs-comment">// A</span>
+    <span class="hljs-comment">// end</span>
+
+    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+</code></pre>
+<p>如上，当基类析构函数<code>~A</code>被显式调用时，继承类析构函数<code>~B</code>却被调用了。
+我猜测原因是编译器看到<code>~A</code>时就直接把它翻译为对析构函数的调用了，而析构函数是virtual的，所以去查虚表了。
+附带一提，如果显式调用<code>A::~A</code>的话，那就不会调用<code>~B</code>，而只会调用<code>~A</code>了。</p>
+<p>Covariant Return Types：尽管不可以通过返回值来重载函数，但是却允许通过范围类型更小的返回值来覆盖函数。</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> A* <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ <span class="hljs-comment">/*...*/</span> }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-comment">// This is OK</span>
+    <span class="hljs-function">B* <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ <span class="hljs-comment">/*...*/</span> }
+    <span class="hljs-comment">// This is invalid</span>
+    <span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{}
+};
+</code></pre>
+
+        
+        
+    </body>
+    </html>

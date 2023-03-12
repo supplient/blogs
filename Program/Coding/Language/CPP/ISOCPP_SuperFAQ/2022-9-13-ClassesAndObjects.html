@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/classes-and-objects">https://isocpp.org/wiki/faq/classes-and-objects</a></p>
+<p>stuct与class是等价的，但大家通常还是习惯把struct用作弱封装，而把class用作强封装。</p>
+<p>C里的static变量在C++里被废弃了。（指的是将作用域限定在当前文件的static变量，不是指函数体内的静态生命周期static变量）</p>
+<p>const类变量和非const类变量一样，也需要out-of-class的定义后才能被作为右值使用：</p>
+<pre><code class="language-C++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">AE</span> {
+    <span class="hljs-comment">// ...</span>
+    <span class="hljs-keyword">public</span>:
+    <span class="hljs-type">static</span> <span class="hljs-type">const</span> <span class="hljs-type">int</span> c6 = <span class="hljs-number">7</span>;
+    <span class="hljs-type">static</span> <span class="hljs-type">const</span> <span class="hljs-type">int</span> c7 = <span class="hljs-number">31</span>;
+};
+
+<span class="hljs-type">const</span> <span class="hljs-type">int</span> AE::c7; <span class="hljs-comment">// definition</span>
+
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">byref</span><span class="hljs-params">(<span class="hljs-type">const</span> <span class="hljs-type">int</span>&amp;)</span></span>;
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">f</span><span class="hljs-params">()</span>
+</span>{
+    <span class="hljs-built_in">byref</span>(AE::c6); <span class="hljs-comment">// error: c6 not an lvalue</span>
+    <span class="hljs-built_in">byref</span>(AE::c7); <span class="hljs-comment">// ok</span>
+    <span class="hljs-type">const</span> <span class="hljs-type">int</span>* p1 = &amp;AE::c6; <span class="hljs-comment">// error: c6 not an lvalue</span>
+    <span class="hljs-type">const</span> <span class="hljs-type">int</span>* p2 = &amp;AE::c7; <span class="hljs-comment">// ok</span>
+    <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>对象的内存排布(memory layout)：没有严格规定，大抵上就是一个成员变量接着另一个成员变量。然后如果有虚函数的话就给对象再加一个指向虚表的指针，然后虚表是在这个类的所有对象之间共享的。</p>
+<p>空类的对象的大小也一定不是0：这是为了确保任何对象都具有独一无二的地址。
+不过有个叫&quot;empty base class optimization&quot;的东西算是半个特例：一个空类的对象的大小不为0，但在它的子类的对象中并没有空类对象的大小，从而避免了浪费内存。例：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">X</span> : Empty {
+    <span class="hljs-type">int</span> a;
+    <span class="hljs-comment">// ...</span>
+};
+
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">f</span><span class="hljs-params">(X* p)</span>
+</span>{
+    <span class="hljs-type">void</span>* p1 = p;
+    <span class="hljs-type">void</span>* p2 = &amp;p-&gt;a;
+    <span class="hljs-keyword">if</span> (p1 == p2) cout &lt;&lt; <span class="hljs-string">&quot;nice: good optimizer&quot;</span>;
+}
+</code></pre>
+<p>这一优化在C++11之后就是强制要求了，不再是编译器特性。</p>
+
+        
+        
+    </body>
+    </html>

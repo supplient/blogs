@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/basics-of-inheritance">https://isocpp.org/wiki/faq/basics-of-inheritance</a></p>
+<p>基类的protect是用来给继承类提供接口保证的，不是用来提供数据访问的。
+基类管理的数据应当放在基类的private中，而不是protect中。
+否则当对基类内部数据结构作出修改时，继承类的代码就报废掉了。
+因此,protect部分应为继承类提供稳定的接口。</p>
+<ul>
+<li>public：为外部类提供接口</li>
+<li>protected: 为继承类提供接口</li>
+<li>private：自己维护的数据</li>
+</ul>
+<p>哲学：尽管我们总是希望能够提供一个稳定的接口给任何人，但现实是这通常会受限于时间而无法实现。
+因此我们通常会牺牲protected部分的接口稳定性，把继承类也需要访问的数据直接放到protected部分。</p>
+
+        
+        
+    </body>
+    </html>

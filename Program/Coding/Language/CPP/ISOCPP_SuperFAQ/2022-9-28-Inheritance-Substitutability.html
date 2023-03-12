@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title></title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p><a href="https://isocpp.org/wiki/faq/proper-inheritance">https://isocpp.org/wiki/faq/proper-inheritance</a></p>
+<p><code>Derived** -&gt; Base**</code>的转换是危险的，它会导致继承类B的指针能指向另一个继承类C的对象。</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;A&quot;</span> &lt;&lt; endl; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>: <span class="hljs-keyword">public</span> A
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;B&quot;</span> &lt;&lt; endl; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">C</span>: <span class="hljs-keyword">public</span> A
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;C&quot;</span> &lt;&lt; endl; }
+};
+ 
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+    B b;
+    B* bp = &amp;b; <span class="hljs-comment">// bp =&gt; b</span>
+    B** bpp = &amp;bp; <span class="hljs-comment">// bpp =&gt; bp =&gt; b</span>
+
+    <span class="hljs-comment">// !!! THIS MATTERS !!!</span>
+    A** app = (A**)bpp; <span class="hljs-comment">// app =&gt; bp =&gt; b</span>
+
+    C c;
+    C* cp = &amp;c; <span class="hljs-comment">// cp =&gt; c</span>
+    <span class="hljs-comment">// `*app` is the ref for `bp`(i.e. B*&amp;), so modify `*app` will change the value of `bp`,</span>
+    <span class="hljs-comment">//     meaning the address of `b` saved in `bp` will be replaced by </span>
+    <span class="hljs-comment">//     the address of `c` which is saved in `cp`.</span>
+    *app = cp; <span class="hljs-comment">// app =&gt; bp =&gt; c</span>
+
+    bp-&gt;<span class="hljs-built_in">func</span>(); <span class="hljs-comment">// C</span>
+
+    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+</code></pre>
+<p>根本问题在于如果我们能用<code>Base** basePtrPtr</code>去指向一个继承类的指针<code>Derived_A* daPtr</code>的话：</p>
+<pre><code class="language-c++">basePtrPtr = (Base**)&amp;daPtr;
+</code></pre>
+<p>那么同样的基类指针的指针当然也能指向另一个继承类的指针<code>Derived_B* dbPtr</code>。
+而因为对基类指针的指针进行解引用时得到的其实是对继承类指针的引用：</p>
+<pre><code class="language-c++">(*basePtrPtr) === daPtr
+<span class="hljs-built_in">type</span>(*basePtrPtr) === Derived_A*&amp;
+</code></pre>
+<p>所以对基类指针的指针的解引用进行修改时修改的其实是继承类的指针：</p>
+<pre><code class="language-c++">*basePtrPtr = dbPtr; <span class="hljs-comment">// Actually, `daPtr` is modified.</span>
+</code></pre>
+<p>结果就导致<code>daPtr</code>里的地址被替换为<code>dbPtr</code>里的地址，也就是说<code>daPtr</code>指向了一个<code>Derived_B</code>对象。</p>
+<p>继承类对象的容器不应转换为基类对象的容器，那是极其危险的。
+不过继承类对象的指针的容器可以安全地转换为基类对象的指针的容器。
+两者的根本区别在于容器类的方法需不需要重载（对象容器需要，指针容器不需要）。
+考虑用数组做容器类：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-keyword">virtual</span> <span class="hljs-type">void</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;A&quot;</span> &lt;&lt; endl; }
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B</span>: <span class="hljs-keyword">public</span> A
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">func</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;B&quot;</span> &lt;&lt; endl; }
+	<span class="hljs-type">int</span> x;
+};
+
+<span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">UserCode</span><span class="hljs-params">(A arr[])</span>
+</span>{
+	arr[<span class="hljs-number">0</span>].<span class="hljs-built_in">func</span>(); <span class="hljs-comment">// OK, print B</span>
+	arr[<span class="hljs-number">1</span>].<span class="hljs-built_in">func</span>(); <span class="hljs-comment">// Segmentation Error</span>
+}
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+	B arr[<span class="hljs-number">3</span>];
+	<span class="hljs-built_in">UserCode</span>(arr);
+}
+</code></pre>
+<p>把A的数组<code>A[]</code>和B的数组<code>B[]</code>用伪代码写一下的话，大概是这种感觉：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">class</span> <span class="hljs-title class_">A_array</span>
+{
+<span class="hljs-keyword">private</span>:
+	<span class="hljs-type">void</span>* data;
+<span class="hljs-keyword">public</span>:
+	A&amp; <span class="hljs-keyword">operator</span>[](<span class="hljs-type">int</span> index)
+	{
+		<span class="hljs-type">void</span>* addr = data + index * <span class="hljs-built_in">sizeof</span>(A);
+		<span class="hljs-keyword">return</span> *(A*)(addr);
+	}
+};
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">B_array</span>
+{
+<span class="hljs-keyword">private</span>:
+	<span class="hljs-type">void</span>* data;
+<span class="hljs-keyword">public</span>:
+	B&amp; <span class="hljs-keyword">operator</span>[](<span class="hljs-type">int</span> index)
+	{
+		<span class="hljs-type">void</span>* addr = data + index * <span class="hljs-built_in">sizeof</span>(B);
+		<span class="hljs-keyword">return</span> *(B*)(addr);
+	}
+};
+</code></pre>
+<p>注意到它们的<code>operator[]</code>是不同的：<code>A[]</code>用的是<code>sizeof(A)</code>，而<code>B[]</code>用的是<code>sizeof(B)</code>。
+因此<code>A[]</code>和<code>B[]</code>其实是没有任何继承关系的毫无关系的两个不同的类型，那当然是不应该相互转换的。
+之所以能把<code>B[]</code>转成<code>A[]</code>，只是因为C++不区分<code>A[]</code>和<code>A*</code>而已。</p>
+<ul>
+<li>考虑指针容器的情况，此时<code>sizeof(A*) === sizeof(B*)</code>，所以从继承类指针的容器到基类指针的容器的转换是安全的。</li>
+</ul>
+<p>继承类对象必须可以替代基类对象：继承时应保持基类接口已对外做的承诺。
+重要的是“承诺”，而不止是“接口的函数签名”。
+通常而言“函数签名”就包含了大多数“承诺”，但方法的副作用、参数的范围等等这些不体现在“函数签名”中的东西其实也是“承诺”的一部分。
+继承时也应保持这些承诺。</p>
+
+        
+        
+    </body>
+    </html>

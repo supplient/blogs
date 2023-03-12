@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>1&period; &#x7ee7;&#x627f;&DiacriticalGrave;torch&period;autograd&period;Function&DiacriticalGrave;</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <hr>
+<h2 id="title-利用numba为pytorch自定义functionzhihu-tags-pytorch-numba-cudazhihu-url-httpszhuanlanzhihucomp582978353">title: 利用Numba为Pytorch自定义Function
+zhihu-tags: Pytorch, Numba, CUDA
+zhihu-url: <a href="https://zhuanlan.zhihu.com/p/582978353">https://zhuanlan.zhihu.com/p/582978353</a></h2>
+<p>本文简要介绍如何利用Numba为Pytorch自定义Function，
+从而能够在不编写C++ Extension的情况下，
+使用纯Python编写使用CUDA Kernel的Function。</p>
+<h1 id="1-继承torchautogradfunction">1. 继承<code>torch.autograd.Function</code></h1>
+<p>为了自定义一个能集成进pytorch的自动求导系统的操作，
+我们需要继承<code>torch.autograd.Function</code>，
+并重载它的<code>forward</code>, <code>backward</code>函数。</p>
+<p>这部分的详情请参阅<a href="https://pytorch.org/docs/stable/notes/extending.html#extending-torch-autograd">Extending PyTorch</a>。</p>
+<pre><code class="language-python"><span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">IncFunction</span>(torch.autograd.Function):
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">ctx, x: torch.Tensor</span>):
+		ctx.save_for_backward(x)
+
+		y = x * x
+
+		<span class="hljs-keyword">return</span> y
+
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">backward</span>(<span class="hljs-params">ctx, grad_y: torch.Tensor</span>):
+		x, = ctx.saved_tensors
+		grad_x = <span class="hljs-literal">None</span>
+
+		<span class="hljs-keyword">if</span> ctx.needs_input_grad[<span class="hljs-number">0</span>]:
+			grad_x = <span class="hljs-number">2</span> * x * grad_y
+		
+		<span class="hljs-keyword">return</span> grad_x
+inc = IncFunction.apply
+</code></pre>
+<h1 id="2-编写cuda-kernel">2. 编写CUDA kernel</h1>
+<p>我们使用<a href="https://numba.pydata.org/">Numba</a>来编写CUDA kernel，替换掉上面代码中的<code>y = x * x</code>。</p>
+<p>Numba是一个JIT库，能够在运行时将一个python函数编译成可执行代码。
+这里我们就是依靠它的<code>numba.cuda</code>模块来将python函数编译成调用CUDA API的可执行代码。</p>
+<p>具体的CUDA kernel编写方法请参阅<a href="https://numba.readthedocs.io/en/stable/cuda/kernels.html">Numba的教程</a>
+和更全面复杂的<a href="https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html">Nvidia的CUDA Programming Guide</a>。</p>
+<pre><code class="language-python"><span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">import</span> numba.cuda <span class="hljs-keyword">as</span> cu
+
+
+<span class="hljs-comment"># Convenient function for specifying CUDA thread block size</span>
+_block_size = <span class="hljs-number">512</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">_cal_block_num</span>(<span class="hljs-params">n</span>):
+	<span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>((n-<span class="hljs-number">1</span>)/_block_size) + <span class="hljs-number">1</span>
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">IncFunction</span>(torch.autograd.Function):
+<span class="hljs-meta">	@staticmethod</span>
+<span class="hljs-meta">	@cu.jit</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">cuda_inc</span>(<span class="hljs-params">y, x</span>):
+		i = cu.grid(<span class="hljs-number">1</span>)
+		<span class="hljs-keyword">if</span> i &gt;= x.shape[<span class="hljs-number">0</span>]:
+			<span class="hljs-keyword">return</span>
+		y[i] = x[i] * x[i]
+
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">ctx, x: torch.Tensor</span>):
+		ctx.save_for_backward(x)
+
+		y = torch.empty_like(x, device=x.device)
+
+		_req_memo = [x.requires_grad]
+		x.requires_grad = <span class="hljs-literal">False</span>
+		IncFunction.cuda_inc[_cal_block_num(x.flatten().shape[<span class="hljs-number">0</span>]), _block_size](y.flatten(), x.flatten())
+		x.requires_grad, = _req_memo
+
+		<span class="hljs-keyword">return</span> y
+
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">backward</span>(<span class="hljs-params">ctx, grad_y: torch.Tensor</span>):
+		x, = ctx.saved_tensors
+		grad_x = <span class="hljs-literal">None</span>
+
+		<span class="hljs-keyword">if</span> ctx.needs_input_grad[<span class="hljs-number">0</span>]:
+			grad_x = <span class="hljs-number">2</span> * x * grad_y
+		
+		<span class="hljs-keyword">return</span> grad_x
+inc = IncFunction.apply
+</code></pre>
+<p>注意上文代码中有一处细节：<code>x.requires_grad = False</code>。
+这是因为如果传给Numba一个<code>requires_grad == True</code>的Tensor的话，
+它会报错：</p>
+<blockquote>
+<p><code>Can't get __cuda_array_interface__ on Variable that requires grad. If gradients aren't required, use var.detach() to get Variable that doesn't require grad.</code></p>
+</blockquote>
+<p>我觉得这是Pytorch的bug，
+因为根据<a href="https://pytorch.org/docs/stable/notes/extending.html#how-to-use">Pytorch的官方文档</a>：</p>
+<blockquote>
+<p>Tensor arguments that track history (i.e., with requires_grad=True) will be converted to ones that don’t track history before the call, and their use will be registered in the graph.</p>
+</blockquote>
+<p>也就是不管<code>x</code>的<code>requires_grad</code>是否为<code>True</code>，
+它在<code>forward</code>函数里进行的计算都不会被逐一记录，
+它在graph中的记录只有一整个<code>Function</code>的。
+通过查看<code>grad_fn</code>也很容易验证这一现象：</p>
+<pre><code class="language-python"><span class="hljs-meta">&gt;&gt;&gt; </span>y = inc(x)
+<span class="hljs-meta">&gt;&gt;&gt; </span>y.grad_fn
+&lt;torch.autograd.function.IncFunctionBackward <span class="hljs-built_in">object</span> at <span class="hljs-number">0x000002114A1BE5E0</span>&gt;
+</code></pre>
+<p>可以看到，<code>y</code>的<code>grad_fn</code>确实是一整个<code>IncFunction.backward</code>。</p>
+<p>所以其实Pytorch应该帮我把<code>requires_grad</code>在<code>forward</code>函数里给临时设为<code>False</code>的，
+但Pytorch没有这么做，
+也就导致Numba接收到一个<code>requires_grad</code>为True的张量，
+弄得它以为我想让它自动求导了，
+可它确实做不到，于是就报错了。</p>
+<p>因此我们需要临时手动关掉<code>requires_grad</code>，从而也就有了上文的代码：</p>
+<pre><code class="language-python">_req_memo = [x.requires_grad]
+x.requires_grad = <span class="hljs-literal">False</span>
+<span class="hljs-comment"># Call Numba Kernel Function</span>
+x.requires_grad, = _req_memo
+</code></pre>
+<h1 id="3-兼容cpu">3. 兼容CPU</h1>
+<p>最后一个问题是如果输入的Tensor <code>x</code>不在GPU上而是在CPU上，
+那会报错：</p>
+<blockquote>
+<p><code>Cannot determine Numba type of &lt;class 'torch.Tensor'&gt;</code></p>
+</blockquote>
+<p>这是因为我们的kernel函数<code>cuda_inc</code>是被编译为CUDA函数的，
+它之前之所以能接受Pytorch的Tensor是因为Pytorch在GPU上的Tensor实现了<a href="https://numba.readthedocs.io/en/stable/cuda/cuda_array_interface.html"><code>__cuda_array_interface__</code></a>。</p>
+<p>而在CPU上的Pytorch tensor当然是没有实现这个接口的，
+所以numba就无法识别出来了，结果也就报了上面的错。</p>
+<p>解决方案很简单：提供一个专门的CPU版本即可。
+例如可以根据<code>x</code>的<code>is_cuda</code>来分支判断：</p>
+<pre><code class="language-python"><span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">import</span> numba.cuda <span class="hljs-keyword">as</span> cu
+
+
+<span class="hljs-comment"># Convenient function for specifying CUDA thread block size</span>
+_block_size = <span class="hljs-number">512</span>
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">_cal_block_num</span>(<span class="hljs-params">n</span>):
+	<span class="hljs-keyword">return</span> <span class="hljs-built_in">int</span>((n-<span class="hljs-number">1</span>)/_block_size) + <span class="hljs-number">1</span>
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">IncFunction</span>(torch.autograd.Function):
+<span class="hljs-meta">	@staticmethod</span>
+<span class="hljs-meta">	@cu.jit</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">cuda_inc</span>(<span class="hljs-params">y, x</span>):
+		i = cu.grid(<span class="hljs-number">1</span>)
+		<span class="hljs-keyword">if</span> i &gt;= x.shape[<span class="hljs-number">0</span>]:
+			<span class="hljs-keyword">return</span>
+		y[i] = x[i] * x[i]
+
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">forward</span>(<span class="hljs-params">ctx, x: torch.Tensor</span>):
+		ctx.save_for_backward(x)
+
+		y = torch.empty_like(x, device=x.device)
+		<span class="hljs-keyword">if</span> x.is_cuda:
+			<span class="hljs-comment"># GPU implementation</span>
+			_req_memo = [x.requires_grad]
+			x.requires_grad = <span class="hljs-literal">False</span>
+			IncFunction.cuda_inc[_cal_block_num(x.flatten().shape[<span class="hljs-number">0</span>]), _block_size](y.flatten(), x.flatten())
+			x.requires_grad, = _req_memo
+		<span class="hljs-keyword">else</span>:
+			<span class="hljs-comment"># CPU implementation</span>
+			<span class="hljs-comment"># Silly implementation, just for demonstration purpose</span>
+			xf = x.flatten()
+			yf = y.flatten()
+			<span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(xf.shape[<span class="hljs-number">0</span>]):
+				yf[i] = xf[i] * xf[i]
+
+		<span class="hljs-keyword">return</span> y
+
+<span class="hljs-meta">	@staticmethod</span>
+	<span class="hljs-keyword">def</span> <span class="hljs-title function_">backward</span>(<span class="hljs-params">ctx, grad_y: torch.Tensor</span>):
+		x, = ctx.saved_tensors
+		grad_x = <span class="hljs-literal">None</span>
+
+		<span class="hljs-keyword">if</span> ctx.needs_input_grad[<span class="hljs-number">0</span>]:
+			grad_x = <span class="hljs-number">2</span> * x * grad_y
+		
+		<span class="hljs-keyword">return</span> grad_x
+inc = IncFunction.apply
+
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:
+	x = torch.randn([<span class="hljs-number">5</span>, <span class="hljs-number">5</span>], dtype=torch.float64, requires_grad=<span class="hljs-literal">True</span>, 
+		<span class="hljs-comment"># device=&quot;cpu&quot;</span>
+		device=<span class="hljs-string">&quot;cuda&quot;</span>
+	)
+
+	y = inc(x)
+	<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Check inc(x).grad_fn: <span class="hljs-subst">{y.grad_fn}</span>&quot;</span>)
+
+	testres = torch.autograd.gradcheck(inc, x)
+	<span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Check grad by gradcheck: <span class="hljs-subst">{testres}</span>&quot;</span>)
+</code></pre>
+<p>上述代码中我还加入了测试代码，可以直接运行来检查结果。
+为了方便下载，我也上传了一份在<a href="https://gist.github.com/supplient/2373a571f7d09a06879446b622b6b609">gist</a>上。</p>
+
+        
+        
+    </body>
+    </html>

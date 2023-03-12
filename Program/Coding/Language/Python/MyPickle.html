@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Q&colon; What does &DiacriticalGrave;Resolve Reference&DiacriticalGrave;&lpar;&#x89e3;&#x6790;&#x5f15;&#x7528;&rpar; mean&quest;</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p>我自己在python里实现了一下对象持久化，它能把对象引用给展开（不过不支持递归）。
+写完以后才发现<a href="https://docs.python.org/3/library/pickle.html">pickle</a>的存在，其实根本不需要我自己写，它已经实现得非常好了。</p>
+<p>这里放一下我自己写的对象持久化，做个纪念：</p>
+<pre><code class="language-python"><span class="hljs-keyword">from</span> importlib <span class="hljs-keyword">import</span> import_module
+<span class="hljs-keyword">from</span> types <span class="hljs-keyword">import</span> NoneType
+
+
+_MODULE_PATH_KEY = <span class="hljs-string">&quot;~!@module_path@!~&quot;</span>
+_CLASS_NAME_KEY = <span class="hljs-string">&quot;~!@class_name@!~&quot;</span>
+_RESERVED_KEY = [_MODULE_PATH_KEY, _CLASS_NAME_KEY]
+_BASIC_TYPES = [<span class="hljs-built_in">int</span>, <span class="hljs-built_in">float</span>, <span class="hljs-built_in">str</span>, <span class="hljs-built_in">bool</span>, NoneType]
+
+<span class="hljs-comment">##############################</span>
+<span class="hljs-comment"># Q: What does `Resolve Reference`(解析引用) mean?</span>
+<span class="hljs-comment"># A: It means to replace all the instance reference with a simple dictionary.</span>
+<span class="hljs-comment">#	See the example at the bottom of the file.</span>
+<span class="hljs-comment">##############################</span>
+
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">ResolveReference</span>(<span class="hljs-params">obj</span>):
+	<span class="hljs-string">&#x27;&#x27;&#x27;Resolve the reference in `obj`.
+
+	Support: 
+	object 		:= basic | list[] | dict{} | instance
+	basic  		:= int | float | str | bool | None
+	list[] 		:= [object, object, ...]
+	dict{} 		:= {basic: object, basic: object, ...}
+	instance	:= has an attribute &#x27;__dict__&#x27;, and
+	.__dict__	:= {str: object, str:object, ...}
+
+	Note: 
+	* Only the module name &amp; the class name are saved for instance. So if some modules are missed when `Deserialize`, it will fails.
+	* Cannot handle the incursion in `instance`. e.g. a.ref.ref == a
+	&#x27;&#x27;&#x27;</span>
+	<span class="hljs-comment"># basic types</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">any</span>((<span class="hljs-built_in">isinstance</span>(obj, typ) <span class="hljs-keyword">for</span> typ <span class="hljs-keyword">in</span> _BASIC_TYPES)):
+		<span class="hljs-keyword">return</span> obj
+
+	<span class="hljs-comment"># list</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(obj, <span class="hljs-built_in">list</span>):
+		stc = []
+		<span class="hljs-keyword">for</span> item <span class="hljs-keyword">in</span> obj:
+			stc.append(ResolveReference(item))
+		<span class="hljs-keyword">return</span> stc
+	
+	<span class="hljs-comment"># dict</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(obj, <span class="hljs-built_in">dict</span>):
+		stc = {}
+		<span class="hljs-keyword">for</span> key, item <span class="hljs-keyword">in</span> obj.items():
+			stc[key] = ResolveReference(item)
+		<span class="hljs-keyword">return</span> stc
+
+	<span class="hljs-comment"># instance</span>
+	stc = {}
+	stc[_MODULE_PATH_KEY] = obj.__module__
+	stc[_CLASS_NAME_KEY] = obj.__class__.__name__
+	<span class="hljs-keyword">for</span> key, value <span class="hljs-keyword">in</span> obj.__dict__.items():
+		<span class="hljs-keyword">if</span> key <span class="hljs-keyword">in</span> _RESERVED_KEY:
+			<span class="hljs-keyword">raise</span> <span class="hljs-string">f&quot;Key conflict! Do not use any member named after <span class="hljs-subst">{key}</span>.&quot;</span>
+		stc[key] = ResolveReference(value)
+	<span class="hljs-keyword">return</span> stc
+
+
+<span class="hljs-keyword">def</span> <span class="hljs-title function_">BuildReference</span>(<span class="hljs-params">stc</span>):
+	<span class="hljs-string">&#x27;&#x27;&#x27;See `Serialize`&#x27;s comment for supported.
+	&#x27;&#x27;&#x27;</span>
+	<span class="hljs-comment"># basic types</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">any</span>((<span class="hljs-built_in">isinstance</span>(stc, typ) <span class="hljs-keyword">for</span> typ <span class="hljs-keyword">in</span> _BASIC_TYPES)):
+		<span class="hljs-keyword">return</span> stc
+
+	<span class="hljs-comment"># list</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(stc, <span class="hljs-built_in">list</span>):
+		obj = []
+		<span class="hljs-keyword">for</span> item <span class="hljs-keyword">in</span> stc:
+			obj.append(BuildReference(item))
+		<span class="hljs-keyword">return</span> obj
+	
+	<span class="hljs-comment"># dict</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">isinstance</span>(stc, <span class="hljs-built_in">dict</span>) <span class="hljs-keyword">and</span> _MODULE_PATH_KEY <span class="hljs-keyword">not</span> <span class="hljs-keyword">in</span> stc:
+		obj = {}
+		<span class="hljs-keyword">for</span> key, item <span class="hljs-keyword">in</span> obj.items():
+			obj[key] = BuildReference(item)
+		<span class="hljs-keyword">return</span> obj
+
+	<span class="hljs-comment"># instance</span>
+	module = import_module(stc[_MODULE_PATH_KEY])
+	klass = module.__dict__[stc[_CLASS_NAME_KEY]]
+	obj = klass()
+	<span class="hljs-keyword">for</span> key, value <span class="hljs-keyword">in</span> stc.items():
+		<span class="hljs-keyword">if</span> key <span class="hljs-keyword">in</span> _RESERVED_KEY:
+			<span class="hljs-keyword">continue</span>
+		obj.__dict__[key] = BuildReference(value)
+	<span class="hljs-keyword">return</span> obj
+
+
+<span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:
+	<span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>:
+		<span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self</span>):
+			self.x = <span class="hljs-number">3</span>
+	<span class="hljs-keyword">class</span> <span class="hljs-title class_">T</span>:
+		<span class="hljs-keyword">def</span> <span class="hljs-title function_">__init__</span>(<span class="hljs-params">self</span>):
+			self.a = A()
+	
+	obj = T()
+	stc = ResolveReference(obj)
+	bobj = BuildReference(stc)
+
+	<span class="hljs-keyword">assert</span>(stc == {
+		_MODULE_PATH_KEY: __name__,
+		_CLASS_NAME_KEY: <span class="hljs-string">&quot;T&quot;</span>,
+		<span class="hljs-string">&quot;a&quot;</span>: {
+			_MODULE_PATH_KEY: __name__,
+			_CLASS_NAME_KEY: <span class="hljs-string">&quot;A&quot;</span>,
+			<span class="hljs-string">&quot;x&quot;</span>: <span class="hljs-number">3</span>
+		}
+	})
+	<span class="hljs-keyword">assert</span>(<span class="hljs-built_in">isinstance</span>(bobj, T))
+	<span class="hljs-keyword">assert</span>(<span class="hljs-built_in">isinstance</span>(bobj.a, A))
+	<span class="hljs-keyword">assert</span>(bobj.a.x == <span class="hljs-number">3</span>)
+</code></pre>
+
+        
+        
+    </body>
+    </html>

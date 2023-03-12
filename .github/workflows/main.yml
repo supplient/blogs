@@ -22,24 +22,18 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Build temporary directory
-        run: mkdir -p "${{ github.workspace }}/md"
-
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          path: "${{ github.workspace }}/md"
+          path: "${{ github.workspace }}"
 
       - name: Blog Builder
-        uses: supplient/Actions_BlogBuilder@main
+        uses: supplient/Actions_HTMLPDFBlogBuilder@main
         with:
-          markdown_dir: "/github/workspace/md"
-          html_dir: "/github/workspace/html"
-          title: "测试用博客"
+          root_dir: "/github/workspace"
         
       - name: Deploy to gp-pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: "${{ github.workspace }}/html"
+          publish_dir: "${{ github.workspace }}"

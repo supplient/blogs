@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>C&plus;&plus;20 Concept &#x9e2d;&#x5b50;&#x68c0;&#x67e5;</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <p>#! <a href="https://zhuanlan.zhihu.com/p/578128561">https://zhuanlan.zhihu.com/p/578128561</a></p>
+<h1 id="c20-concept-鸭子检查">C++20 Concept 鸭子检查</h1>
+<p>本文简短地介绍从C++20开始支持的concept的一种用法：鸭子检查。</p>
+<p>简单来说就是当我想要检查某个模板参数<code>T</code>的时候，那我就只管写出来我希望合法的表达式即可：</p>
+<pre><code class="language-c++"><span class="hljs-comment">// ref:</span>
+<span class="hljs-comment">//  https://en.cppreference.com/w/cpp/language/constraints#Requires_clauses</span>
+<span class="hljs-comment">//  https://en.cppreference.com/w/cpp/language/requires</span>
+<span class="hljs-comment">//  https://en.cppreference.com/w/cpp/concepts</span>
+
+<span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;iostream&gt;</span></span>
+<span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;concepts&gt;</span></span>
+<span class="hljs-meta">#<span class="hljs-keyword">include</span> <span class="hljs-string">&lt;type_traits&gt;</span></span>
+<span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> std;
+
+<span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> T&gt;
+<span class="hljs-keyword">concept</span> DuckCheck = <span class="hljs-built_in">requires</span> (T t, <span class="hljs-type">int</span> x) {
+    <span class="hljs-comment">// /*Write a expression expected to be valid*/</span>
+    <span class="hljs-comment">// { /*expression*/ } noexcept</span>
+    <span class="hljs-comment">// { /*expression*/ } -&gt; /*concepts to check expression&#x27;s type*/</span>
+
+    <span class="hljs-comment">// Check if accept an `int` param</span>
+    t.<span class="hljs-built_in">ParamFunc</span>(x);
+
+    <span class="hljs-comment">// Check if throw exception</span>
+    { t.~<span class="hljs-built_in">T</span>() } <span class="hljs-keyword">noexcept</span>;
+
+    <span class="hljs-comment">// Check if return type is `void`</span>
+    { t.<span class="hljs-built_in">VoidFunc</span>() } -&gt; same_as&lt;<span class="hljs-type">void</span>&gt;;
+};
+
+
+<span class="hljs-keyword">class</span> <span class="hljs-title class_">A</span>
+{
+<span class="hljs-keyword">public</span>:
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">VoidFunc</span><span class="hljs-params">()</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;It looks like a duck.&quot;</span> &lt;&lt; endl; }
+    <span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">ParamFunc</span><span class="hljs-params">(<span class="hljs-type">int</span> x)</span> </span>{ cout &lt;&lt; <span class="hljs-string">&quot;It swims like a duck.&quot;</span> &lt;&lt; endl; }
+
+    ~<span class="hljs-built_in">A</span>() { cout &lt;&lt; <span class="hljs-string">&quot;So it is a duck.&quot;</span> &lt;&lt; endl; }
+};
+
+
+<span class="hljs-function"><span class="hljs-type">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span>
+</span>{
+    DuckCheck <span class="hljs-keyword">auto</span> a = A{};
+    a.<span class="hljs-built_in">VoidFunc</span>();
+    a.<span class="hljs-built_in">ParamFunc</span>(<span class="hljs-number">3</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+}
+
+<span class="hljs-comment">/* Output
+
+It looks like a duck.
+It swims like a duck.
+So it is a duck.
+
+*/</span>
+</code></pre>
+<p>除了上述代码中演示的</p>
+<ul>
+<li>检查返回值类型</li>
+<li>检查是否能接受某个类型的参数</li>
+<li>检查是否抛出异常</li>
+<li>检查是否有某个成员函数</li>
+</ul>
+<p>以外，其他各种各样的检查当然也都可以进行（继承类、操作符重载、嵌套类型等等）。
+不过有一些更适合直接用标准库里的concept进行检查，例如：</p>
+<pre><code class="language-c++"><span class="hljs-keyword">template</span>&lt;<span class="hljs-keyword">typename</span> T&gt; <span class="hljs-keyword">requires</span>
+    <span class="hljs-comment">// check inheritment</span>
+    derived_from&lt;T, Base&gt; &amp;&amp;
+    <span class="hljs-comment">// check convertible</span>
+    convertible_to&lt;T, SomeType&gt; &amp;&amp; 
+    <span class="hljs-comment">// check constructor</span>
+    default_initializable&lt;T&gt; &amp;&amp;  
+    <span class="hljs-comment">// check copyable, movable, swapable</span>
+    <span class="hljs-function">copyable&lt;T&gt; 
+<span class="hljs-type">void</span> <span class="hljs-title">FuncCheckParam</span><span class="hljs-params">(T t)</span>
+</span>{
+    <span class="hljs-comment">// ...</span>
+}
+</code></pre>
+<p>鸭子检查最适合的还是检查操作符重载、检查函数参数这类要是手写concept或者type traits的话不仅贼麻烦还很不直观的情况。</p>
+
+        
+        
+    </body>
+    </html>

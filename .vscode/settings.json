@@ -1,0 +1,25 @@
+{
+    "latex-workshop.latex.recipes":[
+        {
+            "name": "xelatex",
+            "tools": [
+                "xelatex"
+            ]
+        },
+        {
+            "name": "xelatex ➞ bibtex ➞ xelatex × 2",
+            "tools": [
+                "xelatex",
+                "bibtex",
+                "xelatex",
+                "xelatex"
+            ]
+        },
+    ],
+    "latex-workshop.latex.autoBuild.run": "onSave",
+
+	"latex-workshop.viewer.pdf.internal.port": 16774,
+	"latex-workshop.view.pdf.viewer": "browser",
+	"latex-workshop.view.pdf.invertMode.enabled": "always",
+	"latex-workshop.view.pdf.invert": 0.1,
+}

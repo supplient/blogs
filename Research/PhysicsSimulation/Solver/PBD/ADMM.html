@@ -1,247 +1,171 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
-<head>
-  <meta charset="utf-8" />
-  <meta name="generator" content="pandoc" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-  <title>测试用博客</title>
-  <style>
-    code{white-space: pre-wrap;}
-    span.smallcaps{font-variant: small-caps;}
-    div.columns{display: flex; gap: min(4vw, 1.5em);}
-    div.column{flex: auto; overflow-x: auto;}
-    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
-    ul.task-list{list-style: none;}
-    ul.task-list li input[type="checkbox"] {
-      width: 0.8em;
-      margin: 0 0.8em 0.2em -1.6em;
-      vertical-align: middle;
-    }
-  </style>
-  <link rel="stylesheet" href="https://gist.githubusercontent.com/supplient/1726b3acbfed278f54b66cf11129a43b/raw/62b874d98f72005d18b9b2a05d3be6815959b51b/gh-pandoc.css" />
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
-  type="text/javascript"></script>
-  <!--[if lt IE 9]>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
-  <![endif]-->
-</head>
-<body>
-<header id="title-block-header">
-<h1 class="title">测试用博客</h1>
-</header>
-<h1 id="论文阅读admm-projective-dynamics">论文阅读：ADMM ⊇ Projective
-Dynamics</h1>
-<p>本文为对<a
-href="https://mattoverby.net/pages/admmpd_abstract.html">ADMM ⊇
-Projective Dynamics: Fast Simulation of Hyperelastic Models with Dynamic
-Constraints</a>的阅读笔记。
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>&#x8bba;&#x6587;&#x9605;&#x8bfb;&#xff1a;ADMM &supe; Projective Dynamics</title>
+        <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension jks-liu.wpls */
+/* Error */
+</style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css" rel="stylesheet" type="text/css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+        
+    </head>
+    <body class="vscode-body vscode-light">
+        <h1 id="论文阅读admm--projective-dynamics">论文阅读：ADMM ⊇ Projective Dynamics</h1>
+<p>本文为对<a href="https://mattoverby.net/pages/admmpd_abstract.html">ADMM ⊇ Projective Dynamics: Fast Simulation of Hyperelastic Models with Dynamic Constraints</a>的阅读笔记。
 须注意，本文极其精简，只涉及极小一部分论文内容，并且哪怕是这一小部分也以我个人理解为主。</p>
-<p>本文里大段篇幅都和<a
-href="https://zhuanlan.zhihu.com/p/518244355">XPBD的这篇最优化视点</a>一模一样，这是有意为之的，我想让这篇文章独立成文，但又容易进行比较。</p>
-<p>一些记号约定： * 位移为<span
-class="math inline">\(x\)</span>，速度为<span
-class="math inline">\(v\)</span>，加速度为<span
-class="math inline">\(a\)</span>，时间为<span
-class="math inline">\(t\)</span>。 * 共<span
-class="math inline">\(n\)</span>个质点。 *
-所有向量均为列向量。标量对<span
-class="math inline">\(n\)</span>维向量求导，结果为<span
-class="math inline">\(n\)</span>维向量；<span
-class="math inline">\(m\)</span>维向量对<span
-class="math inline">\(n\)</span>维向量求导，结果为<span
-class="math inline">\(m\)</span>行<span
-class="math inline">\(n\)</span>列矩阵。 * 上标表示时刻，例如<span
-class="math inline">\(x^n\)</span>表示第<span
-class="math inline">\(n\)</span>个时刻的位移。 *
-下标表示某个质点的值，例如<span
-class="math inline">\(x_i\)</span>表示第<span
-class="math inline">\(i\)</span>个质点的位移。 * 已知<span
-class="math inline">\(n\)</span>时刻的所有状态信息，包括但不限于<span
-class="math inline">\(x, v,
-a\)</span>。（注意这里为了和其他地方的标记统一，所以<span
-class="math inline">\(n\)</span>同时具有<span
-class="math inline">\(n\)</span>维和第<span
-class="math inline">\(n\)</span>个时刻的含义，有点混用了） *
-质量矩阵为对角矩阵<span class="math inline">\(M=diag\{m_1, m_2, \cdots,
-m_n\}\)</span>，其中<span class="math inline">\(m_i\)</span>为第<span
-class="math inline">\(i\)</span>个质点的质量。设质量与时间无关，始终不变。
-* <span class="math inline">\(\Delta
-t\)</span>为时步长度，即每帧之间的时间长度<span
-class="math inline">\(Δt=t^{n+1}-t^n\)</span>。 * <span
-class="math inline">\(∇U\)</span>为函数<span
-class="math inline">\(U\)</span>对<span
-class="math inline">\(x\)</span>求一阶导，<span
-class="math inline">\(H(U)\)</span>为<span
-class="math inline">\(U\)</span>对<span
-class="math inline">\(x\)</span>求二阶导（即海森矩阵）。</p>
-<h1 id="方法">1. 方法</h1>
-<p>我们的目标是要求出当前位移<span
-class="math inline">\(x\)</span>，根据速度定义，其满足：</p>
-<p><span class="math display">\[
+<p>本文里大段篇幅都和<a href="https://zhuanlan.zhihu.com/p/518244355">XPBD的这篇最优化视点</a>一模一样，这是有意为之的，我想让这篇文章独立成文，但又容易进行比较。</p>
+<p>一些记号约定：</p>
+<ul>
+<li>位移为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">x</span></span></span></span>，速度为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>v</mi></mrow><annotation encoding="application/x-tex">v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.03588em;">v</span></span></span></span>，加速度为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>a</mi></mrow><annotation encoding="application/x-tex">a</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">a</span></span></span></span>，时间为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.61508em;"></span><span class="strut bottom" style="height:0.61508em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">t</span></span></span></span>。</li>
+<li>共<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>个质点。</li>
+<li>所有向量均为列向量。标量对<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>维向量求导，结果为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>维向量；<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">m</span></span></span></span>维向量对<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>维向量求导，结果为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">m</span></span></span></span>行<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>列矩阵。</li>
+<li>上标表示时刻，例如<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mi>n</mi></msup></mrow><annotation encoding="application/x-tex">x^n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.664392em;"></span><span class="strut bottom" style="height:0.664392em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord mathit">n</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>表示第<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>个时刻的位移。</li>
+<li>下标表示某个质点的值，例如<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">x_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathit">i</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>表示第<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">i</span></span></span></span>个质点的位移。</li>
+<li>已知<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>时刻的所有状态信息，包括但不限于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi><mo separator="true">,</mo><mi>v</mi><mo separator="true">,</mo><mi>a</mi></mrow><annotation encoding="application/x-tex">x, v, a</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="base textstyle uncramped"><span class="mord mathit">x</span><span class="mpunct">,</span><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="mpunct">,</span><span class="mord mathit">a</span></span></span></span>。（注意这里为了和其他地方的标记统一，所以<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>同时具有<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>维和第<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">n</span></span></span></span>个时刻的含义，有点混用了）</li>
+<li>质量矩阵为对角矩阵<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>M</mi><mo>=</mo><mi>d</mi><mi>i</mi><mi>a</mi><mi>g</mi><mo>{</mo><msub><mi>m</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>m</mi><mn>2</mn></msub><mo separator="true">,</mo><mo>⋯</mo><mo separator="true">,</mo><msub><mi>m</mi><mi>n</mi></msub><mo>}</mo></mrow><annotation encoding="application/x-tex">M=diag\{m_1, m_2, \cdots, m_n\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">M</span><span class="mrel">=</span><span class="mord mathit">d</span><span class="mord mathit">i</span><span class="mord mathit">a</span><span class="mord mathit" style="margin-right:0.03588em;">g</span><span class="mopen">{</span><span class="mord"><span class="mord mathit">m</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">1</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mpunct">,</span><span class="mord"><span class="mord mathit">m</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">2</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mpunct">,</span><span class="minner">⋯</span><span class="mpunct">,</span><span class="mord"><span class="mord mathit">m</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathit">n</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mclose">}</span></span></span></span>，其中<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>m</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">m_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">m</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathit">i</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>为第<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.65952em;"></span><span class="strut bottom" style="height:0.65952em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">i</span></span></span></span>个质点的质量。设质量与时间无关，始终不变。</li>
+<li><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">\Delta t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathrm">Δ</span><span class="mord mathit">t</span></span></span></span>为时步长度，即每帧之间的时间长度Δt=t^{n+1}-t^n。</li>
+<li>∇U为函数<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>对<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">x</span></span></span></span>求一阶导，<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>H</mi><mo>(</mo><mi>U</mi><mo>)</mo></mrow><annotation encoding="application/x-tex">H(U)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.75em;"></span><span class="strut bottom" style="height:1em;vertical-align:-0.25em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.08125em;">H</span><span class="mopen">(</span><span class="mord mathit" style="margin-right:0.10903em;">U</span><span class="mclose">)</span></span></span></span>为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>对<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">x</span></span></span></span>求二阶导（即海森矩阵）。</li>
+</ul>
+<h1 id="1-方法">1. 方法</h1>
+<p>我们的目标是要求出当前位移<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">x</span></span></span></span>，根据速度定义，其满足：</p>
 \tag{1.1}
 x^{n+1} = x^n + \int_{t^n}^{t^{n+1}}vdt
-\]</span></p>
+
 <p>速度又根据加速度定义，满足：</p>
-<p><span class="math display">\[
 \tag{1.2}
 v = v^n + \int_{t^n}^{t}adt
-\]</span></p>
+
 <p>根据牛顿第二定律，可知：</p>
-<p><span class="math display">\[
 \tag{1.3}
 a=M^{-1}F
-\]</span></p>
-<p>把式1.3代入到式1.2里，就能求出<span
-class="math inline">\(v\)</span>关于<span
-class="math inline">\(t\)</span>的函数，然后再代进式1.1里就能求出<span
-class="math inline">\(x^{n+1}\)</span>关于<span
-class="math inline">\(t^{n+1}\)</span>的函数。 不过因为<span
-class="math inline">\(F\)</span>通常都很复杂，所以直接求积分不太现实，使用数值积分的方法近似求解比较现实。</p>
+
+<p>把式1.3代入到式1.2里，就能求出<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>v</mi></mrow><annotation encoding="application/x-tex">v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.03588em;">v</span></span></span></span>关于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.61508em;"></span><span class="strut bottom" style="height:0.61508em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">t</span></span></span></span>的函数，然后再代进式1.1里就能求出<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>关于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>t</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">t^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">t</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>的函数。
+不过因为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>F</mi></mrow><annotation encoding="application/x-tex">F</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.13889em;">F</span></span></span></span>通常都很复杂，所以直接求积分不太现实，使用数值积分的方法近似求解比较现实。</p>
 <p>对式1.1, 1.2<strong>应用隐式欧拉法（第一个处理）</strong>：</p>
-<p><span class="math display">\[
 \left\{
 \begin{aligned}
-    x^{n+1} = x^n + Δtv^{n+1} \\
-    v^{n+1} = v^n + Δta^{n+1} \\
+	x^{n+1} = x^n + Δtv^{n+1} \\
+	v^{n+1} = v^n + Δta^{n+1} \\
 \end{aligned}
 \right.
-\]</span></p>
-<p>这一近似就让<span
-class="math inline">\(x^{n+1}\)</span>变得更容易求解了。为了让解更加明显，我们对它稍作变形，把下式的<span
-class="math inline">\(v^{n+1}\)</span>代进上式，从而消掉并不是目标项的<span
-class="math inline">\(v^{n+1}\)</span>，得到：</p>
-<p><span class="math display">\[
+
+<p>这一近似就让<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>变得更容易求解了。为了让解更加明显，我们对它稍作变形，把下式的<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>v</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">v^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>代进上式，从而消掉并不是目标项的<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>v</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">v^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>，得到：</p>
 x^{n+1}=x^n+Δtv^n+Δt^2a^{n+1}
-\]</span></p>
-<p>求解这一关于<span class="math inline">\(x^{n+1}\)</span>的方程即可。
-不过<span class="math inline">\(a^{n+1}\)</span>还没有展开。
-如果展开的话，因为<span
-class="math inline">\(a^{n+1}=M^{-1}F^{n+1}\)</span>， 而<span
-class="math inline">\(F^{n+1}\)</span>通常都是关于<span
-class="math inline">\(x^{n+1}\)</span>或<span
-class="math inline">\(v^{n+1}\)</span>的非线性函数，
-这就导致上式变成了一个关于<span
-class="math inline">\(x^{n+1}\)</span>的非线性方程。
+
+<p>求解这一关于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>的方程即可。
+不过<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>a</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">a^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">a</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>还没有展开。
+如果展开的话，因为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>a</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup><mo>=</mo><msup><mi>M</mi><mrow><mo>−</mo><mn>1</mn></mrow></msup><msup><mi>F</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">a^{n+1}=M^{-1}F^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">a</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mrel">=</span><span class="mord"><span class="mord mathit" style="margin-right:0.10903em;">M</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord">−</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>，
+而<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>F</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">F^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.13889em;">F</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>通常都是关于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>或<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>v</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">v^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit" style="margin-right:0.03588em;">v</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>的非线性函数，
+这就导致上式变成了一个关于<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>的非线性方程。
 我们希望能求解得更容易点。</p>
-<p>我们先把这个非线性方程给写出来，为了方便，记<span
-class="math inline">\(Δx=x^{n+1}-x^n-Δtv^n\)</span>。则有方程：</p>
-<p><span class="math display">\[
+<p>我们先把这个非线性方程给写出来，为了方便，记Δx=x^{n+1}-x^n-Δtv^n。则有方程：</p>
 \tag{1.4}
 MΔx-Δt^2F(Δx)=0
-\]</span></p>
+
 <p>我们的目标是求解式1.4，这在解附近等价于求解以下最优化问题：</p>
-<p><span class="math display">\[
 \min_{Δx}\ G(Δx)=\frac{1}{2}Δx^TMΔx-Δt^2∫F(Δx)d(Δx)
-\]</span></p>
-<p>这是因为在没有约束条件的情况下，<span
-class="math inline">\(G(Δx)\)</span>的极值点必定满足<span
-class="math inline">\(\frac{∂G}{∂Δx}=MΔx-Δt^2F(Δx)=0\)</span>，也就是1.4式成立。</p>
-<p>为了能方便地处理<span
-class="math inline">\(F\)</span>，此处再引入一个假设：<strong><span
-class="math inline">\(F\)</span>为保守力（第二个处理）</strong>，即有势能场<span
-class="math inline">\(U\)</span>满足：</p>
-<p><span class="math display">\[
+
+<p>这是因为在没有约束条件的情况下，G(Δx)的极值点必定满足\frac{∂G}{∂Δx}=MΔx-Δt^2F(Δx)=0，也就是1.4式成立。</p>
+<p>为了能方便地处理<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>F</mi></mrow><annotation encoding="application/x-tex">F</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.13889em;">F</span></span></span></span>，此处再引入一个假设：<strong><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>F</mi></mrow><annotation encoding="application/x-tex">F</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.13889em;">F</span></span></span></span>为保守力（第二个处理）</strong>，即有势能场<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>满足：</p>
 ∇U=-F
-\]</span></p>
+
 <p>则最优化问题可记为：</p>
-<p><span class="math display">\[
 \tag{1.5}
 \min_{Δx}\ G(Δx)=\frac{1}{2}Δx^TMΔx-Δt^2U(Δx)
-\]</span></p>
-<p><span class="math inline">\(G\)</span>的前半项<span
-class="math inline">\(\frac{1}{2}Δx^TMΔx\)</span>是个关于<span
-class="math inline">\(Δx\)</span>的二次项，求它的极值点很容易。
-所以<span class="math inline">\(G\)</span>的复杂度由其后半项<span
-class="math inline">\(U\)</span>来决定。 通常而言，<span
-class="math inline">\(U\)</span>都挺复杂的，不是一个简单的二次函数。</p>
-<hr />
-<p>（下文和<a
-href="https://zhuanlan.zhihu.com/p/518244355">XPBD的那篇</a>产生分歧）</p>
-<p>因为<span
-class="math inline">\(G\)</span>的两项在复杂度上的差距，所以我们会有一个很直接的想法：能不能分开来处理这两项？设</p>
-<p><span class="math display">\[
+
+<p><span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">G</span></span></span></span>的前半项\frac{1}{2}Δx^TMΔx是个关于Δx的二次项，求它的极值点很容易。
+所以<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">G</span></span></span></span>的复杂度由其后半项<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>来决定。
+通常而言，<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>都挺复杂的，不是一个简单的二次函数。</p>
+<hr>
+<p>（下文和<a href="https://zhuanlan.zhihu.com/p/518244355">XPBD的那篇</a>产生分歧）</p>
+<p>因为<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">G</span></span></span></span>的两项在复杂度上的差距，所以我们会有一个很直接的想法：能不能分开来处理这两项？设</p>
 \begin{aligned}
-    G_1(\Delta x) &amp;= \frac{1}{2}Δx^TMΔx \\
-    G_2(\Delta x) &amp;= -Δt^2U(Δx) \\
-    \Rightarrow G(\Delta x) &amp;= G_1(\Delta x) + G_2(\Delta x)
+	G_1(\Delta x) &= \frac{1}{2}Δx^TMΔx \\
+	G_2(\Delta x) &= -Δt^2U(Δx) \\
+	\Rightarrow G(\Delta x) &= G_1(\Delta x) + G_2(\Delta x)
 \end{aligned}
-\]</span></p>
-<p>在这基础上，我们<strong>引入新的变量：<span
-class="math inline">\(\Delta z\)</span>，将式1.5转换成<a
-href="https://statisticaloddsandends.wordpress.com/2020/01/03/consensus-admm/">共识形式(consensus
-form)</a>（第三个处理）</strong>：</p>
-<p><span class="math display">\[
+
+<p>在这基础上，我们<strong>引入新的变量：<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>z</mi></mrow><annotation encoding="application/x-tex">\Delta z</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathrm">Δ</span><span class="mord mathit" style="margin-right:0.04398em;">z</span></span></span></span>，将式1.5转换成<a href="https://statisticaloddsandends.wordpress.com/2020/01/03/consensus-admm/">共识形式(consensus form)</a>（第三个处理）</strong>：</p>
 \tag{1.6}
 \begin{aligned}
-    \min_{Δx, \Delta z}&amp;\ G(Δx, \Delta z)=G_1(\Delta x) + G_2(\Delta
-z) \\
-    s.t.&amp;\ \Delta x - \Delta z = 0
+	\min_{Δx, \Delta z}&\ G(Δx, \Delta z)=G_1(\Delta x) + G_2(\Delta z) \\
+	s.t.&\ \Delta x - \Delta z = 0
 \end{aligned}
-\]</span></p>
+
 <p>不难发现式1.6和式1.5是等价的。</p>
-<p><a href="https://stanford.edu/~boyd/admm.html">ADMM(Alternating
-direction method of
-multipliers)</a>适用于解决式1.6这类最优化问题。关于ADMM的详细介绍我放在了附录部分，在此仅简述它的过程。</p>
+<p><a href="https://stanford.edu/~boyd/admm.html">ADMM(Alternating direction method of multipliers)</a>适用于解决式1.6这类最优化问题。关于ADMM的详细介绍我放在了附录部分，在此仅简述它的过程。</p>
 <p>ADMM是一种迭代求解最优化问题的方法，它将原本复杂的目标函数拆成若干较小的部分，然后因为这些若干较小的部分是比较容易优化的，所以逐个优化这些较小的部分能比直接优化原来的函数要容易得多。</p>
-<p>设<span class="math inline">\(\Delta
-x^+\)</span>为ADMM迭代里每步中待求的量（即当前步的量），<span
-class="math inline">\(\Delta
-x^-\)</span>为每步中已知的量（即上一步的量）。其他符号也遵循同样的上标约定。</p>
+<p>设<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi mathvariant="normal">Δ</mi><msup><mi>x</mi><mo>+</mo></msup></mrow><annotation encoding="application/x-tex">\Delta x^+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.771331em;"></span><span class="strut bottom" style="height:0.771331em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathrm">Δ</span><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord">+</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>为ADMM迭代里每步中待求的量（即当前步的量），<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi mathvariant="normal">Δ</mi><msup><mi>x</mi><mo>−</mo></msup></mrow><annotation encoding="application/x-tex">\Delta x^-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.771331em;"></span><span class="strut bottom" style="height:0.771331em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathrm">Δ</span><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord">−</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>为每步中已知的量（即上一步的量）。其他符号也遵循同样的上标约定。</p>
 <p>则<strong>对式1.6应用ADMM方法求解得到方程组（第四个处理）</strong>：</p>
-<p><span class="math display">\[
 \left\{
 \begin{aligned}
-\Delta x^+ &amp;= \argmin_{\Delta x}\{G_1(\Delta x) + \frac{1}{2}\rho
-||\Delta x-\Delta z^- + u^-|| \} \\
-\Delta z^+ &amp;= \argmin_{\Delta z}\{G_2(\Delta z) + \frac{1}{2}\rho
-||\Delta z-\Delta x^+ - u^-|| \} \\
-u^+ &amp;= u^- + \Delta x^+ - \Delta z^+
+\Delta x^+ &= \argmin_{\Delta x}\{G_1(\Delta x) + \frac{1}{2}\rho ||\Delta x-\Delta z^- + u^-|| \} \\
+\Delta z^+ &= \argmin_{\Delta z}\{G_2(\Delta z) + \frac{1}{2}\rho ||\Delta z-\Delta x^+ - u^-|| \} \\
+u^+ &= u^- + \Delta x^+ - \Delta z^+
 \end{aligned}
 \right.
-\]</span></p>
-<p>其中<span
-class="math inline">\(\rho\)</span>为ADMM里的一个参数，论文里是直接取了<span
-class="math inline">\(\rho = 1\)</span>。<span
-class="math inline">\(u\)</span>为引入的辅助变量。</p>
-<p>我们把上式中的<span class="math inline">\(G_1,
-G_2\)</span>给写开来，则有：</p>
-<p><span class="math display">\[
+
+<p>其中<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>ρ</mi></mrow><annotation encoding="application/x-tex">\rho</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.625em;vertical-align:-0.19444em;"></span><span class="base textstyle uncramped"><span class="mord mathit">ρ</span></span></span></span>为ADMM里的一个参数，论文里是直接取了<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>ρ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\rho = 1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.64444em;"></span><span class="strut bottom" style="height:0.8388800000000001em;vertical-align:-0.19444em;"></span><span class="base textstyle uncramped"><span class="mord mathit">ρ</span><span class="mrel">=</span><span class="mord mathrm">1</span></span></span></span>。<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">u</span></span></span></span>为引入的辅助变量。</p>
+<p>我们把上式中的<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>G</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>G</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">G_1, G_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">G</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">1</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mpunct">,</span><span class="mord"><span class="mord mathit">G</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">2</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>给写开来，则有：</p>
 \tag{1.7}
 \left\{
 \begin{aligned}
-\Delta x^+ &amp;= \argmin_{\Delta x}\{\frac{1}{2}Δx^TMΔx +
-\frac{1}{2}\rho ||\Delta x-\Delta z^- + u^-||^2_2 \} \\
-\Delta z^+ &amp;= \argmin_{\Delta z}\{-Δt^2U(Δz) + \frac{1}{2}\rho
-||\Delta z-\Delta x^+ - u^-||^2_2 \} \\
-u^+ &amp;= u^- + \Delta x^+ - \Delta z^+
+\Delta x^+ &= \argmin_{\Delta x}\{\frac{1}{2}Δx^TMΔx + \frac{1}{2}\rho ||\Delta x-\Delta z^- + u^-||^2_2 \} \\
+\Delta z^+ &= \argmin_{\Delta z}\{-Δt^2U(Δz) + \frac{1}{2}\rho ||\Delta z-\Delta x^+ - u^-||^2_2 \} \\
+u^+ &= u^- + \Delta x^+ - \Delta z^+
 \end{aligned}
 \right.
-\]</span></p>
-<p>注意到第一步更新<span
-class="math inline">\(Δx\)</span>里因为目标函数是两个二次函数的和，所以算起来是很快的，第三步更新<span
-class="math inline">\(u\)</span>也很朴素。问题依然还是第二步更新<span
-class="math inline">\(Δz\)</span>时<span
-class="math inline">\(U(Δz)\)</span>可能是个非常复杂的函数。式1.7和式1.5在难度上并没有变化。</p>
-<p>很遗憾，论文里并没有对<span
-class="math inline">\(U\)</span>的处理提出一套统一的解决方法，原文中描述为：</p>
-<pre><code>While this is still a nonlinear optimization problem that generally does not have a closed-form solution, for typical energy terms it is very low-dimensional and therefore feasible to solve numerically or using precomputation.</code></pre>
-<p>我并不理解他所说的”low-dimensional”是什么意思。</p>
-<h1 id="讨论">2. 讨论</h1>
-<p>我们为了求解式1.1里的<span
-class="math inline">\(x^{n+1}\)</span>，一共做了四个处理：</p>
-<ol type="1">
+
+<p>注意到第一步更新Δx里因为目标函数是两个二次函数的和，所以算起来是很快的，第三步更新<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>u</mi></mrow><annotation encoding="application/x-tex">u</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.43056em;"></span><span class="strut bottom" style="height:0.43056em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">u</span></span></span></span>也很朴素。问题依然还是第二步更新Δz时U(Δz)可能是个非常复杂的函数。式1.7和式1.5在难度上并没有变化。</p>
+<p>很遗憾，论文里并没有对<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>的处理提出一套统一的解决方法，原文中描述为：</p>
+<pre><code>While this is still a nonlinear optimization problem that generally does not have a closed-form solution, for typical energy terms it is very low-dimensional and therefore feasible to solve numerically or using precomputation.
+</code></pre>
+<p>我并不理解他所说的&quot;low-dimensional&quot;是什么意思。</p>
+<h1 id="2-讨论">2. 讨论</h1>
+<p>我们为了求解式1.1里的<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msup><mi>x</mi><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow></msup></mrow><annotation encoding="application/x-tex">x^{n+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.8141079999999999em;"></span><span class="strut bottom" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">x</span><span class="vlist"><span style="top:-0.363em;margin-right:0.05em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle uncramped"><span class="mord scriptstyle uncramped"><span class="mord mathit">n</span><span class="mbin">+</span><span class="mord mathrm">1</span></span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>，一共做了四个处理：</p>
+<ol>
 <li>应用隐式欧拉法计算数值积分</li>
 <li>假设作用力均为保守力，从而可以将原问题转换为最优化问题</li>
 <li>引入新的变量，将无约束优化问题转化为与其等价的等式约束优化问题</li>
 <li>对上一步得到的等式约束优化问题应用ADMM进行求解</li>
 </ol>
 <p>但这四个处理后依然需要面对一个目标函数比二次函数复杂的最优化问题，文中并没有给出统一的解法。</p>
-<p>关于引入ADMM的意义，我觉得可能是直接优化一整个<span
-class="math inline">\(G\)</span>可能要比分开来优化<span
-class="math inline">\(G_1,
-G_2\)</span>来得慢，但引入ADMM并不能降低求解难度本身，依然需要寻求其他解决方案，文中也使用了各种solver来处理<span
-class="math inline">\(U\)</span>。</p>
-</body>
-</html>
+<p>关于引入ADMM的意义，我觉得可能是直接优化一整个<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit">G</span></span></span></span>可能要比分开来优化<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>G</mi><mn>1</mn></msub><mo separator="true">,</mo><msub><mi>G</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">G_1, G_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.8777699999999999em;vertical-align:-0.19444em;"></span><span class="base textstyle uncramped"><span class="mord"><span class="mord mathit">G</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">1</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span><span class="mpunct">,</span><span class="mord"><span class="mord mathit">G</span><span class="vlist"><span style="top:0.15em;margin-right:0.05em;margin-left:0em;"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span><span class="reset-textstyle scriptstyle cramped"><span class="mord mathrm">2</span></span></span><span class="baseline-fix"><span class="fontsize-ensurer reset-size5 size5"><span style="font-size:0em;">​</span></span>​</span></span></span></span></span></span>来得慢，但引入ADMM并不能降低求解难度本身，依然需要寻求其他解决方案，文中也使用了各种solver来处理<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>U</mi></mrow><annotation encoding="application/x-tex">U</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="strut" style="height:0.68333em;"></span><span class="strut bottom" style="height:0.68333em;vertical-align:0em;"></span><span class="base textstyle uncramped"><span class="mord mathit" style="margin-right:0.10903em;">U</span></span></span></span>。</p>
+
+        <script async src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script>
+        
+    </body>
+    </html>

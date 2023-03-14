@@ -6,14 +6,17 @@ zhihu-url: https://zhuanlan.zhihu.com/p/613111930
 
 本文将讨论使用 **基于位置的方法(Position Based Method)** 对受约束的粒子系统进行物理仿真的过程。
 
-（Position Based Method这名字是我自己起的，与impulse based method相对。
-因为本文内容相当于是Position Based Dynamics(PBD)的一个子集，
-仅关注在受束系统下系统方程组的建立上，
-因此为了避免让读者误以为这就是PBD的全部了，
-我就另外起了一个名字。）
+> Position Based Method这名字是我自己起的，与impulse based method相对。
+> 
+> 因为本文内容相当于是Position Based Dynamics(PBD)的一个子集，
+> 仅关注在受束系统中系统方程组的建立上，
+> 因此为了避免让读者误以为这就是PBD的全部了，
+> 我就另外起了一个名字。
+> 
+> 不过本文方法其实也不关注Position就是了（笑）。
 
-（笔者曾写过另一篇[PBD的阅读笔记](https://zhuanlan.zhihu.com/p/339879519)，
-因所站视点不同，故另开此文。）
+> 笔者曾写过另一篇[PBD的阅读笔记](https://zhuanlan.zhihu.com/p/339879519)，
+> 因所站视点不同，故另开此文。
 
 
 
@@ -77,136 +80,103 @@ $$
 若$m<n$，则还差$n-m$个方程。
 
 
-# 条件二、内力作用下动量守恒
+# 条件二、动量守恒
 由动量守恒定律可知，
 如果约束力$F_C$为系统内力，
 那么在它的作用下系统动量应当保持不变。
 
-我们先将由约束力$F_C$引起的动量变化量给抽离出来，
-展开$q'$：
-
-$$
-\begin{aligned}
-q'
-= & q+\Delta tv' \\
-= & q+\Delta t(v+\Delta t a) \\
-= & q + \Delta t v + \Delta t^2 M^{-1} F_E + \Delta t^2 M^{-1} F_C
-\end{aligned}
-$$
-
-记
-
-$$
-\left\{
-\begin{aligned}
-	a^* &:= M^{-1} F_E \\
-	v^* &:= v + \Delta t a^* \\
-	q^* &:= q + \Delta t v^*
-\end{aligned}
-\right.
-$$
-
-$$
-\Delta q = \Delta t^2 M^{-1} F_C
-$$
-
-于是$q'$可重写为：
-
-$$
-q' = q^* + \Delta q
-$$
-
-其中$\Delta q$为在约束力$F_C$的作用下系统状态的变化量。
-
-我们希望在内力约束力$F_C$的作用下系统动量保持不变，
+若约束力$F_C$为系统内力，
+因此由牛顿第三定律可知，
+其对系统造成的合外力为0，
 即：
 
 $$
-\begin{aligned}
-p|_{q^*} &= p|_{q'} \\
-\Rightarrow \Delta p :=& p|_{q'} - p|_{q^*} \\
-=& Mq'\cdot \mathbf{1} - M q^* \cdot \mathbf{1} \\
-=& M(q'-q^*) \cdot \mathbf{1} \\
-=& M\Delta q \cdot \mathbf{1} = 0 \\
-\end{aligned}
+F_C \cdot \mathbf{1} = 0
 $$
 
-为了进一步推导，
-此处我们需要先对约束$C(q)=0$做一个假设：
-
-> 若约束$C(q)=0$的约束力$F_C$为系统内力，
-> 则约束函数$C$应满足：
-> 
-> $$
-> \forall q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} = \mathbf{0}
-> $$
-> 
-> 其中 $\nabla C = \frac{\partial C}{\partial q}$.
-
-例如，约束$C([x_1, x_2]^T)=x_1-x_2-1=0$总是满足该假设：
+则从$t$到$t'$这段时间中由$F_C$引起的冲量为：
 
 $$
-\begin{aligned}
-& \nabla C^T \lambda \cdot \mathbf{1} \\
-
-= & \begin{bmatrix}
-	1 \\
-	-1
-\end{bmatrix} \lambda \cdot \begin{bmatrix}
-	1 \\
-	1
-\end{bmatrix} \\
-
-= & \begin{bmatrix}
-	\lambda \\
-	-\lambda
-\end{bmatrix} \cdot  \begin{bmatrix}
-	1 \\
-	1
-\end{bmatrix} \\
-
-= & \lambda -\lambda = 0
-
-\end{aligned}
+\Delta p = \Delta t F_C \cdot \mathbf{1} = 0
 $$
 
-为了让系统动量在内力作用下保持不变$\Delta p= M\Delta q \cdot \mathbf{1} = 0$，
-我们设
+约束力冲量为0，满足动量守恒定律。
 
-$$
-\Delta q = M^{-1} \nabla C^T \lambda
-$$
 
-则内力作用下的系统动量变化量$\Delta p$为：
+# 条件三、保守约束力
+
+【TODO：这个条件还有待进一步的推敲】
+
+我们假设约束力$F_C$为保守力，
+并且希望其对应的势能$U$仅与约束函数$C(q)$有关。
+
+也就是说，当$C(q')=C(q)$时，
+$U(C(q'))=U(C(q))$，
+即从$q$到$q'$，约束力$F_C$不做功
+（这里假设了$F_C$在沿$q$到$q'$的直线路径上保持不变）：
 
 $$
 \begin{aligned}
-\Delta p
-=& M\Delta q \cdot \mathbf{1} \\
-=& MM^{-1} \nabla C^T \lambda \cdot \mathbf{1} \\
-=& \nabla C^T \lambda \cdot \mathbf{1} \\
-\text{[假设 } &\forall q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} = \mathbf{0} \text{]} \\
-=& \mathbf{0} \\
+& U(C(q')) - U(C(q)) \\
+=& \int_q^{q'} F_C \cdot \mathrm{d}s \\
+\approx& F_C \cdot (q'-q) \\
+=& 0
 \end{aligned}
 $$
 
-因此当$\Delta q = M^{-1} \nabla C^T \lambda$时，
-若约束函数$C$满足$\forall q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} = \mathbf{0}$，
-则在该约束对应的约束力$F_C$作用下，
-系统动量保持不变$\Delta p = 0$。
+为了让约束力$F_C$满足上式，
+我们首先引入一条假设：
 
-进一步地，
-当$\Delta q = M^{-1} \nabla C^T \lambda$时，
-若所有约束力为系统内力的约束函数$C$都满足
-$\forall q \forall \lambda: \nabla C^T \lambda \cdot \mathbf{1} = \mathbf{0}$，
-则动量守恒定律被满足。
+$$
+C(q') \approx C(q) + \nabla C|_q (q'-q)
+$$
+
+也就是对$C(q')$在$q$点做泰勒展开，并仅保留一阶导。
+
+下文中为了简洁，将默认把$\nabla C|_q$记为$\nabla C$。
+
+则当$C(q')=C(q)$时，由该假设可得：
+
+$$
+\nabla C(q'-q) = C(q')-C(q) = 0
+$$
+
+此时若我们设约束力$F_C = \nabla C^T \lambda$，
+则有：
+
+$$
+\begin{aligned}
+& F_C \cdot (q'-q) \\
+=& F_C^T (q'-q) \\
+=& (\nabla C^T \lambda)^T (q'-q) \\
+=& \lambda^T \nabla C (q'-q) \\
+=& \lambda^T 0 \\
+=& 0
+\end{aligned}
+$$
+
+约束力$F_C$沿$q$到$q'$的路径上做功为0，
+满足条件。
+
+
+## 和最优化视角之间的一点联系
+如果读者曾阅读过我撰写的[XPBD(最优化视角)](https://zhuanlan.zhihu.com/p/518244355)，
+可能也会注意到我们希望约束力$F_C$对应的势能$U$仅与约束函数$C(q)$有关，
+其实也就类似那篇文章中的第三个处理规定势能结构：
+
+$$
+U = \frac{1}{2} C^T \alpha C
+$$
+
+【TODO：我目前还没有理清这之间的细节，有待后续的进一步研究。】
+
 
 
 
 # 系统方程组
-列出至今为止我们的所有方程——
 
-半隐式欧拉法：
+## 总结上文
+数值积分部分，我们使用半隐式欧拉法：
 
 $$
 \left\{
@@ -217,56 +187,97 @@ $$
 \right.
 $$
 
+运动方程为：
+
 $$
 a=M^{-1}(F_E+F_C)
 $$
 
-条件一：
+条件一要求：
 
 $$
 C(q')=\mathbf{0}
 $$
 
-重写$q'$：
+条件二动量守恒被自动满足。
+
+条件三的两条假设：
 
 $$
 \left\{
 \begin{aligned}
-	a^* &:= M^{-1} F_E \\
-	v^* &:= v + \Delta t a^* \\
-	q^* &:= q + \Delta t v^*
+	& F_C \text{为保守力} \\
+	& C(q') \approx C(q) + \nabla C|_q (q'-q) \\
 \end{aligned}
 \right.
 $$
 
-$$
-\Delta q = \Delta t^2 M^{-1} F_C
-$$
+条件三要求：
 
 $$
-q' = q^* + \Delta q
+F_C = \nabla C^T \lambda
 $$
 
-条件二：
+在两条假设和一条要求被满足时，条件三被满足。
+
+
+## 系统方程组
+
+联立
+
+* 半隐式欧拉法
+* 运动方程
+* 条件一的要求
+* 条件三的要求
 
 $$
-\Delta q = M^{-1} \nabla C^T \lambda
+\left\{
+\begin{aligned}
+	q' &= q + \Delta t v' \\
+	v' &= v + \Delta t a \\
+
+	a &= M^{-1}(F_E+F_C) \\
+
+	C(q') &= 0 \\
+
+	F_C &= \nabla C^T \lambda \\
+\end{aligned}
+\right.
 $$
 
-联立它们，经化简可以得到一个关于$\lambda$的系统方程组：
+经化简可以得到一个关于$\lambda$的方程组，
 
 $$
 C(q^* + M^{-1}\nabla C^T \lambda) = 0
 $$
 
-$\lambda$为$m$维向量，该方程组也提供了$m$个方程，
+其中$q^*$为已知项：
+
+$$
+\left\{
+\begin{aligned}
+	q^* &:= q + \Delta t v^* \\
+	v^* &:= v + \Delta t a^* \\
+	a^* &:= M^{-1} F_E \\
+\end{aligned}
+\right.
+$$
+
+因为$\lambda$为$m$维向量，该方程组也提供了$m$个方程，
 因此当该方程组为线性方程组且各方程之间线性无关时，
 则总是要么有唯一解，要么无解。
 
 解出$\lambda$后，
 
-1. 由$\Delta q=M^{-1}\nabla C^T \lambda,\quad q'=q+\Delta q$可以算出下一时步的系统状态$q'$。
-2. 再由$q'=q+\Delta t v'$可以算出下一时步的系统速度$v'$。
+1. 由$q' = q^* + M^{-1}\nabla C^T \lambda$算出$q'$
+2. 由$q' = q + \Delta t v'$算出$v'$
+
+或者
+
+1. 由$F_C = \nabla C^T \lambda$算出$F_C$
+2. 由$a = M^{-1}(F_E+F_C)$算出$a$
+3. 由$v' = v + \Delta t a$算出$v'$
+4. 由$q' = q + \Delta t v'$算出$q'$
 
 （实际求解时，通常会线性化约束函数$C$来简化计算。
 PBD里还会采用Gauss–Seidel method来近似求解线性方程组。
@@ -410,3 +421,9 @@ $$
 2. Macklin, M., Müller, M. & Chentanez, N. XPBD: position-based simulation of compliant constrained dynamics. in Proceedings of the 9th International Conference on Motion in Games 49–54 (Association for Computing Machinery, 2016). doi:10.1145/2994258.2994272.
 3. Bender, J., Müller, M. & Macklin, M. Position-Based Simulation Methods in Computer Graphics. (2015) doi:10.2312/egt.20151045.
 4. Bender, J., Erleben, K. & Trinkle, J. Interactive Simulation of Rigid Body Dynamics in Computer Graphics. Computer Graphics Forum 33, 246–270 (2014).
+
+
+# 更新日志
+
+* 2023-3-14：重写条件二动量守恒，更改为由$F_C \cdot \mathbf{1} = 0$推得动量守恒，并新增条件三。
+* 2023-3-13：将系统动量计算从$mq$修正为$mv$。

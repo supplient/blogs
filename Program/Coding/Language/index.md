@@ -1,2 +1,2 @@
-* [Python](./Python/index.html)
 * [CPP](./CPP/index.html)
+* [Python](./Python/index.html)

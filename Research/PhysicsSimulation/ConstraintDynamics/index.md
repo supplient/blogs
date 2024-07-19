@@ -1,2 +1,2 @@
-* [PositionBasedMethod](./PositionBasedMethod/index.html)
 * [LagrangeMultipliers](./LagrangeMultipliers/index.html)
+* [PositionBasedMethod](./PositionBasedMethod/index.html)
